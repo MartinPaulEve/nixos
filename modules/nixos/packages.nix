@@ -45,7 +45,7 @@ in
     gparted
     uv
     commitizen
-    docker
+    # docker CLI is provided by virtualisation.docker (see virtualisation.nix)
     github-cli
     fastfetch
     claude-code
