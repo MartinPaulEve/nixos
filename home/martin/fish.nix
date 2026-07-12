@@ -19,10 +19,18 @@ in
     interactiveShellInit = "fastfetch";
   };
 
-  xdg.configFile = lib.listToAttrs (map
+  # These paths were previously GNU Stow symlinks into ~/dotfiles. Home Manager's
+  # backupFileExtension only rescues regular files, not foreign symlinks, so we
+  # force-overwrite the stale stow links. The originals remain in ~/dotfiles.
+  xdg.configFile = (lib.listToAttrs (map
     (file: {
       name = "fish/functions/${file}";
-      value.source = functionsDir + "/${file}";
+      value = {
+        source = functionsDir + "/${file}";
+        force = true;
+      };
     })
-    functionFiles);
+    functionFiles)) // {
+    "fish/config.fish".force = true;
+  };
 }
