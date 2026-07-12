@@ -217,8 +217,14 @@ in
     polkitPolicyOwners = [ "martin" ];
   };
 
+
+  # Enable the openvpn3 service
   programs.openvpn3.enable = true;
-  
+
+  # Enable YubiKey services
+  services.pcscd.enable = true;
+  services.udev.packages = [ pkgs.yubikey-personalization ];
+
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
