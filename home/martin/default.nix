@@ -5,6 +5,7 @@
   imports = [
     ./fish.nix
     ./git.nix
+    ./gnome.nix
     ./shell.nix
     ./unison.nix
     ./whipper.nix
