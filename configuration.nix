@@ -82,9 +82,6 @@ in
   # Configure console keymap
   console.keyMap = "uk";
 
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
@@ -231,6 +228,14 @@ in
   # Enable Atuin
   programs.atuin.enable = true;
 
+  # Detect printers
+  services.printing.enable = true;
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true; 
+    openFirewall = true;
+  };
+
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
@@ -238,6 +243,9 @@ in
     enable = true;
     enableSSHSupport = true;
   };
+
+  # disable the GNOME ssh agent which fights GNUPG for the SSH auth sock
+  services.gnome.gcr-ssh-agent.enable = false;
 
   # List services that you want to enable:
 
