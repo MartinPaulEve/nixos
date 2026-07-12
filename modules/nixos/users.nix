@@ -12,7 +12,6 @@
     shell = pkgs.fish;
     packages = with pkgs; [
       thunderbird
-      git
       python3
       gnomeExtensions.dash-to-dock
     ];

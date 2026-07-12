@@ -12,7 +12,6 @@
     ./packages.nix
     ./printing.nix
     ./security.nix
-    ./shell.nix
     ./users.nix
   ];
 }

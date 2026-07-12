@@ -21,9 +21,7 @@ in
     jetbrains.pycharm
     jetbrains.phpstorm
     jetbrains.webstorm
-    starship
     chromium
-    atuin
     stow
     gimp-with-plugins
     jekyll
