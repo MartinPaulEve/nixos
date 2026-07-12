@@ -164,6 +164,7 @@ in
     docker
     github-cli
     fastfetch
+    claude-code
   ];
 
   system.userActivationScripts.installZoteroLibreOfficeExtension = {
