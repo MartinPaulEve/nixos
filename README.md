@@ -16,6 +16,7 @@ modules/
     audio.nix              PipeWire
     boot.nix               Bootloader, kernel, LUKS
     desktop.nix            X11, GNOME, Firefox
+    fonts.nix              System fonts, incl. Nerd Fonts
     localization.nix       Time zone, locale, console keymap
     networking.nix         NetworkManager, firewall, Tailscale, OpenVPN
     nix.nix                Nix daemon settings, unfree
@@ -23,6 +24,7 @@ modules/
     printing.nix           CUPS + Avahi
     security.nix           SSH, 1Password, YubiKey, GnuPG
     users.nix              User accounts and login shell
+    virtualisation.nix     Docker
 home/                      Home Manager wiring, attached as a NixOS module
   default.nix              Enables home-manager and attaches per-user config
   martin/                  Per-user configuration
