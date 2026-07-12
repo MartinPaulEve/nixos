@@ -150,8 +150,10 @@ with lib.hm.gvariant;
 
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-light";
-      # A Nerd Font so terminal/editor icons (eza, starship) render.
-      monospace-font-name = "CaskaydiaCove Nerd Font 11";
+      # The "Mono" Nerd Font variant forces single-width glyphs; the non-Mono
+      # variant's double-width icons make VTE inflate every cell, spacing all
+      # text far apart. Mono keeps normal terminal metrics and still has icons.
+      monospace-font-name = "CaskaydiaCove Nerd Font Mono 11";
     };
 
     "org/gnome/desktop/notifications" = {
