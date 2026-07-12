@@ -5,6 +5,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos
+    ../../home
   ];
 
   # Host identity.
