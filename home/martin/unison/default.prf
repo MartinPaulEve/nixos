@@ -1,0 +1,26 @@
+
+root = /home/martin/
+root = ssh://statler//home/martin/backup/
+
+path = Documents/Work/Uni
+path = Documents/Work/Programming
+path = Documents/Work/Consulting
+path = Documents/Personal
+path = Documents/Programming
+path = .config/fish
+
+perms = 0
+
+ignore = Name {lib*.sqlite}
+ignore = Name {*new.sqlite}
+ignore = Name {quarterlies}
+ignore = Name {member_data}
+ignore = Name {billing_metadata}
+ignore = Name {_billing_reports_cache}
+ignore = Name {GoogleNews-vectors-negative300.bin}
+ignore = Name {glove.6B.300d.txt}
+ignore = Name {glove.6B.300d.w2vformat.txt}
+ignore = Name {MESH}
+ignore = Name {reclaim-saved}
+ignore = Name {transcribe}
+
