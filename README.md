@@ -28,9 +28,14 @@ home/                      Home Manager wiring, attached as a NixOS module
   martin/                  Per-user configuration
     default.nix
     fish.nix               Fish shell: fastfetch + autoloaded functions
-    git.nix
+    git.nix                Git config, incl. SSH commit signing via 1Password
+    gnome.nix              GNOME settings as declarative dconf
     shell.nix              Starship prompt + Atuin history
+    unison.nix             Unison sync profile
+    whipper.nix            Whipper CD ripper package + config
     functions/             Fish functions, linked into ~/.config/fish/functions
+    unison/                Unison profile source
+    whipper/               Whipper config source
 ```
 
 Home Manager is integrated as a NixOS module, so the whole system (including
