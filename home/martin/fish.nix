@@ -10,7 +10,14 @@ let
   functionFiles = builtins.attrNames (builtins.readDir functionsDir);
 in
 {
-  programs.fish.enable = true;
+  programs.fish = {
+    enable = true;
+
+    # Show system info on interactive shell start (from the previous config.fish).
+    # The starship prompt and atuin history are wired in automatically by their
+    # own Home Manager modules; see ./shell.nix.
+    interactiveShellInit = "fastfetch";
+  };
 
   xdg.configFile = lib.listToAttrs (map
     (file: {
