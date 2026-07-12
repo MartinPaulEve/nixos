@@ -225,6 +225,12 @@ in
   services.pcscd.enable = true;
   services.udev.packages = [ pkgs.yubikey-personalization ];
 
+  # Enable Starship
+  programs.starship.enable = true;
+
+  # Enable Atuin
+  programs.atuin.enable = true;
+
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
