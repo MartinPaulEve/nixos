@@ -15,6 +15,10 @@
 with lib.hm.gvariant;
 
 {
+  # Pin the display to 1440x900. GNOME stores monitor configuration in
+  # ~/.config/monitors.xml (not dconf), keyed to the Virtual-1 connector.
+  xdg.configFile."monitors.xml".source = ./gnome/monitors.xml;
+
   dconf.settings = {
     "de/wagnermartin/Plattenalbum" = {
       height = 650;
