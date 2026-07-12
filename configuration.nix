@@ -151,6 +151,8 @@ in
     libreoffice-fresh
     zotero
     jdk
+    gparted
+    uv
   ];
 
   system.userActivationScripts.installZoteroLibreOfficeExtension = {
