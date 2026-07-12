@@ -110,8 +110,7 @@ in
       thunderbird
       git
       python3
-      firefox
-      pkgs.gnomeExtensions.dash-to-dock
+      gnomeExtensions.dash-to-dock
     ];
   };
 
@@ -164,6 +163,7 @@ in
     commitizen
     docker
     github-cli
+    fastfetch
   ];
 
   system.userActivationScripts.installZoteroLibreOfficeExtension = {
