@@ -51,6 +51,8 @@ in
     claude-code
     # herdr — https://github.com/ogulcancelik/herdr
     inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default
+    ymuse
+    puppeteer-cli
   ];
 
   # Register the Zotero LibreOffice integration extension into LibreOffice.
