@@ -37,6 +37,17 @@ in
   # Enable networking
   networking.networkmanager.enable = true;
 
+  # harden SSH
+  services.openssh = {
+    enable = true;
+    openFirewall = false;
+    settings = {
+      PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
+      PermitRootLogin = "no";
+    };
+  };
+
   # Set your time zone.
   time.timeZone = "Europe/London";
 
@@ -153,6 +164,9 @@ in
     jdk
     gparted
     uv
+    commitizen
+    docker
+    github-cli
   ];
 
   system.userActivationScripts.installZoteroLibreOfficeExtension = {
@@ -193,7 +207,6 @@ in
   # (Optional but recommended for faster boot with VPNs)
   systemd.network.wait-online.enable = false; 
   boot.initrd.systemd.network.wait-online.enable = false;
-  
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
@@ -206,9 +219,6 @@ in
   };
 
   # List services that you want to enable:
-
-  # Enable the OpenSSH daemon.
-  services.openssh.enable = true;
 
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
