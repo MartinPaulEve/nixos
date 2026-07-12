@@ -8,7 +8,7 @@
   users.users."martin" = {
     isNormalUser = true;
     description = "Martin Paul Eve";
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "cdrom" ];
     shell = pkgs.fish;
     packages = with pkgs; [
       thunderbird
