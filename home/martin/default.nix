@@ -7,6 +7,7 @@
     ./git.nix
     ./shell.nix
     ./unison.nix
+    ./whipper.nix
   ];
 
   home.username = "martin";
