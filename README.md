@@ -24,13 +24,20 @@ modules/
     security.nix           SSH, 1Password, YubiKey, GnuPG
     users.nix              User accounts and login shell
 home/                      Home Manager wiring, attached as a NixOS module
+  default.nix              Enables home-manager and attaches per-user config
   martin/                  Per-user configuration
     default.nix
-    fish.nix               Fish shell + autoloaded functions
+    fish.nix               Fish shell: fastfetch + autoloaded functions
     git.nix
-    shell.nix              Starship + Atuin
+    shell.nix              Starship prompt + Atuin history
     functions/             Fish functions, linked into ~/.config/fish/functions
 ```
+
+Home Manager is integrated as a NixOS module, so the whole system (including
+the per-user environment) is built and switched in one `nixos-rebuild`. The
+fish configuration is fully managed here, having replaced an earlier GNU Stow
+setup; `home/default.nix` sets `backupFileExtension` and the fish files use
+`force = true` so activation cleanly supersedes any leftover stow symlinks.
 
 ## Rebuilding
 
