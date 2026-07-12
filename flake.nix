@@ -8,7 +8,6 @@
 
   outputs = inputs@{ self, nixpkgs, herdr, ... }: {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      system = "arm64-linux";
       specialArgs = { inherit inputs; };
       modules = [
         ./configuration.nix
