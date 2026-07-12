@@ -209,7 +209,14 @@ in
   boot.initrd.systemd.network.wait-online.enable = false;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  
+  programs._1password.enable = true;
 
+  programs._1password-gui = { 
+    enable = true; 
+    polkitPolicyOwners = [ "martin" ];
+  };
+  
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
