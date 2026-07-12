@@ -150,6 +150,8 @@ with lib.hm.gvariant;
 
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-light";
+      # A Nerd Font so terminal/editor icons (eza, starship) render.
+      monospace-font-name = "JetBrainsMono Nerd Font 11";
     };
 
     "org/gnome/desktop/notifications" = {
