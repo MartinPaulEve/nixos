@@ -53,6 +53,8 @@ in
     inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default
     ymuse
     puppeteer-cli
+    vlc
+    protonmail-bridge-gui
   ];
 
   # Register the Zotero LibreOffice integration extension into LibreOffice.
