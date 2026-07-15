@@ -55,6 +55,9 @@ in
     puppeteer-cli
     vlc
     protonmail-bridge-gui
+    signal-desktop
+    telegram-desktop
+    expect
   ];
 
   # Register the Zotero LibreOffice integration extension into LibreOffice.
