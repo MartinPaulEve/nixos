@@ -10,6 +10,9 @@
 
   # OpenVPN 3 client (used for the hcommons VPN).
   programs.openvpn3.enable = true;
+  
+  # Resolvd (needed for openvpn3)
+  services.resolved.enable = true;
 
   # Firewall, backed by nftables.
   networking.nftables.enable = true;
