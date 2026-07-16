@@ -40,6 +40,32 @@ home/                      Home Manager wiring, attached as a NixOS module
     whipper/               Whipper config source
 ```
 
+## Packages
+
+System-wide packages live in `modules/nixos/packages.nix`, grouped by
+function:
+
+| Category | Packages |
+| --- | --- |
+| Core CLI utilities | wget, curl, nano, net-tools, expect |
+| Terminal / shell | eza, btop, zellij, fastfetch |
+| File sync & dotfiles | rsync, unison, stow |
+| Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text |
+| Development tooling | jdk, uv, bundler, jekyll, commitizen, github-cli, claude-code |
+| Web browsers & automation | chromium, puppeteer-cli |
+| Networking & VPN | tailscale, tailscale-systray, openvpn3 |
+| Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
+| Office & research | libreoffice-fresh, zotero, pdftk |
+| Graphics & media | gimp-with-plugins, vlc, ymuse |
+| Communication | protonmail-bridge-gui, signal-desktop, telegram-desktop |
+| System & disk utilities | gparted, safeeyes |
+| Miscellaneous | herdr |
+
+Sublime Text is pulled from a dedicated `pkgs` instance that permits the
+insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
+`virtualisation.nix`. After activation, the Zotero LibreOffice integration
+extension is registered automatically.
+
 Home Manager is integrated as a NixOS module, so the whole system (including
 the per-user environment) is built and switched in one `nixos-rebuild`. The
 fish configuration is fully managed here, having replaced an earlier GNU Stow
