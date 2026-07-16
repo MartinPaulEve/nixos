@@ -71,6 +71,7 @@ in
     gimp-with-plugins        # Image editor with plugins
     vlc                      # Media player
     ymuse                    # GTK client for the Music Player Daemon (MPD)
+    yt-dlp                   # CLI media downloader
 
     # --- Communication ---
     # Proton Mail bridge + Thunderbird are configured in email.nix.
