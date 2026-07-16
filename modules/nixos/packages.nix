@@ -13,52 +13,77 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
-    wget
-    curl
-    nano
-    _1password-gui
-    _1password-cli
-    jetbrains.pycharm
-    jetbrains.phpstorm
-    jetbrains.webstorm
-    chromium
-    stow
-    gimp-with-plugins
-    jekyll
-    bundler
-    tailscale
-    tailscale-systray
-    pdftk
-    net-tools
-    openvpn3
-    yubikey-manager
-    yubikey-personalization
-    eza
-    btop
-    zellij
-    unison
-    rsync
-    pkgs-insecure.sublime4
-    libreoffice-fresh
-    zotero
-    jdk
-    gparted
-    uv
-    commitizen
+    # --- Core command-line utilities ---
+    wget                     # HTTP(S) file downloader
+    curl                     # Multi-protocol data-transfer tool
+    nano                     # Lightweight terminal text editor
+    net-tools                # Legacy net utilities (ifconfig, netstat, …)
+    expect                   # Scripts interactive command-line programs
+
+    # --- Terminal / shell enhancements ---
+    eza                      # Modern `ls` replacement
+    btop                     # Resource monitor (CPU / memory / network)
+    zellij                   # Terminal multiplexer
+    fastfetch                # System information fetch tool
+
+    # --- File sync & dotfile management ---
+    rsync                    # Fast incremental file copying / backup
+    unison                   # Bidirectional file synchroniser
+    stow                     # Symlink farm manager for dotfiles
+
+    # --- Editors & IDEs ---
+    jetbrains.pycharm        # Python IDE
+    jetbrains.phpstorm       # PHP IDE
+    jetbrains.webstorm       # JavaScript / web IDE
+    pkgs-insecure.sublime4   # Sublime Text (needs OpenSSL 1.1, see pkgs-insecure)
+
+    # --- Development tooling ---
+    jdk                      # Java Development Kit
+    uv                       # Fast Python package / project manager
+    bundler                  # Ruby dependency manager
+    jekyll                   # Static site generator
+    commitizen               # Conventional-commit helper
+    github-cli               # GitHub CLI (`gh`)
+    claude-code              # Anthropic Claude Code CLI
     # docker CLI is provided by virtualisation.docker (see virtualisation.nix)
-    github-cli
-    fastfetch
-    claude-code
+
+    # --- Web browsers & automation ---
+    chromium                 # Web browser
+    puppeteer-cli            # Headless-Chrome automation CLI
+
+    # --- Networking & VPN ---
+    tailscale                # Mesh VPN
+    tailscale-systray        # Tailscale system-tray indicator
+    openvpn3                 # OpenVPN 3 client
+
+    # --- Security & authentication ---
+    _1password-gui           # 1Password desktop app
+    _1password-cli           # 1Password CLI (`op`)
+    yubikey-manager          # YubiKey configuration tool (ykman)
+    yubikey-personalization  # YubiKey personalization utilities
+
+    # --- Office & research ---
+    libreoffice-fresh        # Office suite
+    zotero                   # Reference / citation manager
+    pdftk                    # PDF manipulation toolkit
+
+    # --- Graphics & media ---
+    gimp-with-plugins        # Image editor with plugins
+    vlc                      # Media player
+    ymuse                    # GTK client for the Music Player Daemon (MPD)
+
+    # --- Communication ---
+    protonmail-bridge-gui    # Proton Mail IMAP/SMTP bridge
+    signal-desktop           # Signal messenger
+    telegram-desktop         # Telegram messenger
+
+    # --- System & disk utilities ---
+    gparted                  # Partition editor
+    safeeyes                 # Break reminder to reduce eye strain
+
+    # --- Miscellaneous ---
     # herdr — https://github.com/ogulcancelik/herdr
     inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default
-    ymuse
-    puppeteer-cli
-    vlc
-    protonmail-bridge-gui
-    signal-desktop
-    telegram-desktop
-    expect
-    safeeyes
   ];
 
   # Register the Zotero LibreOffice integration extension into LibreOffice.
