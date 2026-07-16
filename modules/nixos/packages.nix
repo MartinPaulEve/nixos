@@ -58,6 +58,7 @@ in
     signal-desktop
     telegram-desktop
     expect
+    safeeyes
   ];
 
   # Register the Zotero LibreOffice integration extension into LibreOffice.
