@@ -15,7 +15,7 @@ modules/
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
     boot.nix               Bootloader, kernel, LUKS
-    desktop.nix            X11, GNOME, Firefox
+    desktop.nix            X11, GNOME, GNOME Tweaks, Firefox
     email.nix              Thunderbird + Proton Mail bridge (headless service)
     fonts.nix              System fonts, incl. Nerd Fonts
     localization.nix       Time zone, locale, console keymap
