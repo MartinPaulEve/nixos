@@ -6,6 +6,7 @@
     ./audio.nix
     ./boot.nix
     ./desktop.nix
+    ./email.nix
     ./fonts.nix
     ./localization.nix
     ./networking.nix

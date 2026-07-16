@@ -16,6 +16,7 @@ modules/
     audio.nix              PipeWire
     boot.nix               Bootloader, kernel, LUKS
     desktop.nix            X11, GNOME, Firefox
+    email.nix              Thunderbird + Proton Mail bridge (headless service)
     fonts.nix              System fonts, incl. Nerd Fonts
     localization.nix       Time zone, locale, console keymap
     networking.nix         NetworkManager, firewall, Tailscale, OpenVPN
@@ -57,7 +58,7 @@ function:
 | Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
 | Office & research | libreoffice-fresh, zotero, pdftk |
 | Graphics & media | gimp-with-plugins, vlc, ymuse |
-| Communication | protonmail-bridge-gui, signal-desktop, telegram-desktop |
+| Communication | signal-desktop, telegram-desktop |
 | System & disk utilities | gparted, safeeyes |
 | Miscellaneous | herdr |
 
@@ -65,6 +66,11 @@ Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
+
+Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
+and the Proton Mail bridge. The bridge runs as a per-user systemd service using
+the headless `protonmail-bridge` build with `--noninteractive --no-window`,
+avoiding the GUI build that otherwise crashes at login.
 
 Home Manager is integrated as a NixOS module, so the whole system (including
 the per-user environment) is built and switched in one `nixos-rebuild`. The

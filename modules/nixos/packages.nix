@@ -73,7 +73,7 @@ in
     ymuse                    # GTK client for the Music Player Daemon (MPD)
 
     # --- Communication ---
-    protonmail-bridge-gui    # Proton Mail IMAP/SMTP bridge
+    # Proton Mail bridge + Thunderbird are configured in email.nix.
     signal-desktop           # Signal messenger
     telegram-desktop         # Telegram messenger
 
