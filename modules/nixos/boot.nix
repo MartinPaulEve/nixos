@@ -31,6 +31,12 @@ in
     themePackages = [ nixos-mac-style ];
   };
 
+  # Load the real KMS driver in the initrd so early KMS brings up the virtio-gpu
+  # framebuffer before Plymouth starts drawing. Without this, Plymouth renders on
+  # the EFI simple-framebuffer (simpledrm) and virtio_gpu only loads ~5s into
+  # stage-2 boot, and the mid-boot framebuffer handoff hides the splash.
+  boot.initrd.kernelModules = [ "virtio_gpu" ];
+
   # Quiet the console so Plymouth shows a clean splash instead of kernel logs.
   boot.consoleLogLevel = 0;
   boot.initrd.verbose = false;
