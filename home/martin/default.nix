@@ -7,6 +7,7 @@
     ./git.nix
     ./gnome.nix
     ./shell.nix
+    ./text-automation.nix
     ./unison.nix
     ./whipper.nix
   ];
