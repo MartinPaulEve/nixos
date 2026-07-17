@@ -36,7 +36,6 @@ home/                      Home Manager wiring, attached as a NixOS module
     git.nix                Git config, incl. SSH commit signing via 1Password
     gnome.nix              GNOME settings as declarative dconf
     shell.nix              Starship prompt + Atuin history
-    text-automation.nix    espanso expansions + keyd XCompose glue
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
     functions/             Fish functions, linked into ~/.config/fish/functions
@@ -77,20 +76,15 @@ avoiding the GUI build that otherwise crashes at login.
 
 Boot uses a graphical Plymouth splash (`modules/nixos/boot.nix`), with the
 console quietened via `quiet`/`splash` kernel params so the splash shows in
-place of kernel logs. Because the disk is LUKS-encrypted, Plymouth also renders
-the decryption password prompt. The theme is `nixos-mac-style` — a macOS-style
+place of kernel logs. The theme is `nixos-mac-style` — a macOS-style
 boot animation carrying the NixOS logo — vendored under
 `modules/nixos/plymouth-themes/` and packaged locally (its hardcoded `/usr/share`
 image path is rewritten to the Nix store), since the upstream download is only a
 short-lived signed URL.
 
-Text automation replaces AutoKey (which is X11-only) with two Wayland-friendly
-tools. [espanso](https://espanso.org) handles text expansion — the triggers
-live in `home/martin/text-automation.nix` (e.g. typing `Sian` expands to
-`Siân`); its Wayland build needs evdev access, so `martin` is a member of the
-`input` group. [keyd](https://github.com/rvaiya/keyd)
-(`modules/nixos/keyd.nix`) handles key remapping at the evdev level, so it is
-compositor-agnostic. The `gb(mac)` layout already carries `£` and `#` on the
+[keyd](https://github.com/rvaiya/keyd) (`modules/nixos/keyd.nix`) provides
+system-wide key remapping at the evdev level, so it works under Wayland (unlike
+the X11-only AutoKey). The `gb(mac)` layout already carries `£` and `#` on the
 `3` key (at Shift and AltGr respectively), so keyd remaps the familiar chords
 onto those native combinations rather than synthesising Unicode: `Ctrl+Shift+3`
 emits `Shift+3` (`£`) and `Ctrl+4` emits `AltGr+3` (`#`).
