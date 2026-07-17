@@ -82,6 +82,28 @@ boot animation carrying the NixOS logo — vendored under
 image path is rewritten to the Nix store), since the upstream download is only a
 short-lived signed URL.
 
+For the splash to appear rather than flicker away mid-boot, the real KMS
+driver must come up in the initrd *before* Plymouth starts drawing. Otherwise
+Plymouth renders on the EFI simple-framebuffer (`simpledrm`) and the actual GPU
+driver only loads seconds into stage-2 boot; that framebuffer handoff hides the
+splash. `boot.nix` therefore force-loads the driver early via
+`boot.initrd.kernelModules`. **This value is machine-specific and must be changed
+per host.** The current VM (Parallels on Apple Silicon) uses the paravirtualised
+`virtio_gpu`; on other hardware substitute the appropriate driver:
+
+| Hardware | initrd module |
+| --- | --- |
+| Parallels / QEMU / KVM guest | `virtio_gpu` |
+| Intel graphics | `i915` |
+| AMD graphics | `amdgpu` |
+| NVIDIA (open) | `nouveau` |
+| Apple Silicon (bare metal) | `appledrm` / DCP stack |
+
+Leaving `virtio_gpu` in place on bare metal is harmless (it finds no matching
+device and no-ops) but provides no early-KMS benefit, so add the real driver
+when migrating to physical hardware — the same as regenerating
+`hardware-configuration.nix` for the new machine.
+
 [keyd](https://github.com/rvaiya/keyd) (`modules/nixos/keyd.nix`) provides
 system-wide key remapping at the evdev level, so it works under Wayland (unlike
 the X11-only AutoKey). The `gb(mac)` layout already carries `£` and `#` on the
