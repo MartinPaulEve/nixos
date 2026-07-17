@@ -22,6 +22,7 @@ modules/
     networking.nix         NetworkManager, firewall, Tailscale, OpenVPN
     nix.nix                Nix daemon settings, unfree
     packages.nix           System packages + Zotero/LibreOffice integration
+    plymouth-themes/       Vendored Plymouth boot theme (nixos-mac-style)
     printing.nix           CUPS + Avahi
     security.nix           SSH, 1Password, YubiKey, GnuPG
     users.nix              User accounts and login shell
@@ -71,6 +72,15 @@ Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
 and the Proton Mail bridge. The bridge runs as a per-user systemd service using
 the headless `protonmail-bridge` build with `--noninteractive --no-window`,
 avoiding the GUI build that otherwise crashes at login.
+
+Boot uses a graphical Plymouth splash (`modules/nixos/boot.nix`), with the
+console quietened via `quiet`/`splash` kernel params so the splash shows in
+place of kernel logs. Because the disk is LUKS-encrypted, Plymouth also renders
+the decryption password prompt. The theme is `nixos-mac-style` — a macOS-style
+boot animation carrying the NixOS logo — vendored under
+`modules/nixos/plymouth-themes/` and packaged locally (its hardcoded `/usr/share`
+image path is rewritten to the Nix store), since the upstream download is only a
+short-lived signed URL.
 
 Home Manager is integrated as a NixOS module, so the whole system (including
 the per-user environment) is built and switched in one `nixos-rebuild`. The
