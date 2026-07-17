@@ -18,6 +18,7 @@ modules/
     desktop.nix            X11, GNOME, GNOME Tweaks, Firefox
     email.nix              Thunderbird + Proton Mail bridge (headless service)
     fonts.nix              System fonts, incl. Nerd Fonts
+    keyd.nix               System-wide key remapping (evdev, Wayland-safe)
     localization.nix       Time zone, locale, console keymap
     networking.nix         NetworkManager, firewall, Tailscale, OpenVPN
     nix.nix                Nix daemon settings, unfree
@@ -35,6 +36,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     git.nix                Git config, incl. SSH commit signing via 1Password
     gnome.nix              GNOME settings as declarative dconf
     shell.nix              Starship prompt + Atuin history
+    text-automation.nix    espanso expansions + keyd XCompose glue
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
     functions/             Fish functions, linked into ~/.config/fish/functions
@@ -81,6 +83,17 @@ boot animation carrying the NixOS logo — vendored under
 `modules/nixos/plymouth-themes/` and packaged locally (its hardcoded `/usr/share`
 image path is rewritten to the Nix store), since the upstream download is only a
 short-lived signed URL.
+
+Text automation replaces AutoKey (which is X11-only) with two Wayland-friendly
+tools. [espanso](https://espanso.org) handles text expansion — the triggers
+live in `home/martin/text-automation.nix` (e.g. typing `Sian` expands to
+`Siân`); its Wayland build needs evdev access, so `martin` is a member of the
+`input` group. [keyd](https://github.com/rvaiya/keyd)
+(`modules/nixos/keyd.nix`) handles key remapping at the evdev level, so it is
+compositor-agnostic. The `gb(mac)` layout already carries `£` and `#` on the
+`3` key (at Shift and AltGr respectively), so keyd remaps the familiar chords
+onto those native combinations rather than synthesising Unicode: `Ctrl+Shift+3`
+emits `Shift+3` (`£`) and `Ctrl+4` emits `AltGr+3` (`#`).
 
 Home Manager is integrated as a NixOS module, so the whole system (including
 the per-user environment) is built and switched in one `nixos-rebuild`. The
