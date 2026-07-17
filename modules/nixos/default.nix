@@ -8,6 +8,7 @@
     ./desktop.nix
     ./email.nix
     ./fonts.nix
+    ./keyd.nix
     ./localization.nix
     ./networking.nix
     ./nix.nix

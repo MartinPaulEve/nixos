@@ -13,7 +13,9 @@
   users.users."martin" = {
     isNormalUser = true;
     description = "Martin Paul Eve";
-    extraGroups = [ "networkmanager" "wheel" "cdrom" "docker" ];
+    # "input" grants evdev access, which espanso's Wayland build needs to
+    # detect the trigger keystrokes it expands.
+    extraGroups = [ "networkmanager" "wheel" "cdrom" "docker" "input" ];
     shell = pkgs.fish;
     packages = with pkgs; [
       thunderbird
