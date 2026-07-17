@@ -14,7 +14,7 @@ hosts/
 modules/
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
-    boot.nix               Bootloader, kernel, LUKS
+    boot.nix               Bootloader, kernel, LUKS, Plymouth splash
     desktop.nix            X11, GNOME, GNOME Tweaks, Firefox
     email.nix              Thunderbird + Proton Mail bridge (headless service)
     fonts.nix              System fonts, incl. Nerd Fonts
