@@ -15,6 +15,13 @@
     description = "Martin Paul Eve";
     extraGroups = [ "networkmanager" "wheel" "cdrom" "docker" ];
     shell = pkgs.fish;
+
+    # Public keys accepted for SSH login. security.nix disables password and
+    # keyboard-interactive auth, so a key listed here is the only way in.
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKKjbi7dBrGRlTGDhWb5cPshqCdNkIos+Z5wwM6ijIXN martin@eve.gd"
+    ];
+
     packages = with pkgs; [
       thunderbird
       python3
