@@ -45,6 +45,7 @@ in
     commitizen               # Conventional-commit helper
     github-cli               # GitHub CLI (`gh`)
     claude-code              # Anthropic Claude Code CLI
+    codex                    # OpenAI Codex CLI coding agent
     # docker CLI is provided by virtualisation.docker (see virtualisation.nix)
 
     # --- Web browsers & automation ---
