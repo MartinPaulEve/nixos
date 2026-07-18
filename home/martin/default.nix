@@ -3,6 +3,7 @@
 
 {
   imports = [
+    ./avatar.nix
     ./fish.nix
     ./git.nix
     ./gnome.nix

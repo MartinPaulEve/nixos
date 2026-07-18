@@ -32,6 +32,7 @@ home/                      Home Manager wiring, attached as a NixOS module
   default.nix              Enables home-manager and attaches per-user config
   martin/                  Per-user configuration
     default.nix
+    avatar.nix             Profile picture (~/.face); image in avatar.jpg
     fish.nix               Fish shell: fastfetch + autoloaded functions
     git.nix                Git config, incl. SSH commit signing via 1Password
     gnome.nix              GNOME settings as declarative dconf
