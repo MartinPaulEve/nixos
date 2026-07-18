@@ -6,7 +6,7 @@ source of truth — rebuild directly from here.
 ## Layout
 
 ```
-flake.nix                  Flake inputs (nixpkgs, home-manager, herdr) and outputs
+flake.nix                  Flake inputs (nixpkgs, home-manager, herdr, worksummary) and outputs
 hosts/
   nixos/
     default.nix            Host entry point: hardware scan + host identity
@@ -62,7 +62,7 @@ function:
 | Graphics & media | gimp-with-plugins, vlc, ymuse |
 | Communication | signal-desktop, telegram-desktop |
 | System & disk utilities | gparted, safeeyes |
-| Miscellaneous | herdr |
+| Miscellaneous | herdr, worksummary |
 
 Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
@@ -110,6 +110,19 @@ the X11-only AutoKey). The `gb(mac)` layout already carries `£` and `#` on the
 `3` key (at Shift and AltGr respectively), so keyd remaps the familiar chords
 onto those native combinations rather than synthesising Unicode: `Ctrl+Shift+3`
 emits `Shift+3` (`£`) and `Ctrl+4` emits `AltGr+3` (`#`).
+
+[worksummary](https://github.com/MartinPaulEve/worksummary) is a self-authored
+CLI for logging daily work items. It is consumed as a flake input (built from a
+`flake.nix` in its own repo) rather than vendored, so a rebuild always installs
+whatever the `flake.lock` pins. Pull the latest release with:
+
+```sh
+nix flake update worksummary   # then rebuild
+```
+
+Its fish completion ships inside the package (under
+`share/fish/vendor_completions.d/`), so fish loads it automatically once the
+package is installed — no separate completion wiring required.
 
 Home Manager is integrated as a NixOS module, so the whole system (including
 the per-user environment) is built and switched in one `nixos-rebuild`. The
