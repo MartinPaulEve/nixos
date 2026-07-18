@@ -22,15 +22,20 @@ in
   # DNS via NextDNS over TLS. systemd-resolved is also required by openvpn3.
   # Each server address carries the NextDNS endpoint as its TLS SNI (after `#`),
   # which is how NextDNS applies the profile and this device's identifier.
+  # DNSOverTLS = "true" is strict and fails closed if DoT is unavailable; the
+  # `dnstls` fish function flips it to opportunistic at runtime for captive
+  # portals (see home/martin/functions/dnstls.fish).
   services.resolved = {
     enable = true;
-    dnsovertls = "true"; # strict DNS-over-TLS (fails closed if DoT is unavailable)
-    extraConfig = ''
-      DNS=45.90.28.0#${nextdnsEndpoint}
-      DNS=2a07:a8c0::#${nextdnsEndpoint}
-      DNS=45.90.30.0#${nextdnsEndpoint}
-      DNS=2a07:a8c1::#${nextdnsEndpoint}
-    '';
+    settings.Resolve = {
+      DNS = [
+        "45.90.28.0#${nextdnsEndpoint}"
+        "2a07:a8c0::#${nextdnsEndpoint}"
+        "45.90.30.0#${nextdnsEndpoint}"
+        "2a07:a8c1::#${nextdnsEndpoint}"
+      ];
+      DNSOverTLS = "true";
+    };
   };
 
   # Make resolved's global NextDNS servers authoritative for general lookups,
