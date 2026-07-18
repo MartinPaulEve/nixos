@@ -20,7 +20,7 @@ modules/
     fonts.nix              System fonts, incl. Nerd Fonts
     keyd.nix               System-wide key remapping (evdev, Wayland-safe)
     localization.nix       Time zone, locale, console keymap
-    networking.nix         NetworkManager, firewall, Tailscale, OpenVPN
+    networking.nix         NetworkManager, firewall, Tailscale, OpenVPN, NextDNS (DoT)
     nix.nix                Nix daemon settings, unfree
     packages.nix           System packages + Zotero/LibreOffice integration
     plymouth-themes/       Vendored Plymouth boot theme (nixos-mac-style)
