@@ -1,5 +1,5 @@
 # Networking: NetworkManager, firewall, Tailscale, and OpenVPN.
-{ config, ... }:
+{ config, lib, ... }:
 
 let
   # NextDNS device identifier: this host's name prepended to the NextDNS
@@ -40,9 +40,11 @@ in
 
   # Make resolved's global NextDNS servers authoritative for general lookups,
   # instead of letting NetworkManager push DHCP-provided DNS as the default
-  # resolver (which would bypass NextDNS). Tailscale and openvpn3 register their
-  # split-DNS domains with resolved directly, so VPN name resolution still works.
-  networking.networkmanager.dns = "none";
+  # resolver (which would bypass NextDNS). mkForce overrides the resolved module,
+  # which otherwise sets this to "systemd-resolved". Tailscale and openvpn3
+  # register their split-DNS domains with resolved directly, so VPN name
+  # resolution still works.
+  networking.networkmanager.dns = lib.mkForce "none";
 
   # Firewall, backed by nftables.
   networking.nftables.enable = true;
