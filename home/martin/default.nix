@@ -9,6 +9,7 @@
     ./shell.nix
     ./unison.nix
     ./whipper.nix
+    ./zotero.nix
   ];
 
   home.username = "martin";
