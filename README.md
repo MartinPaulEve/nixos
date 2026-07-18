@@ -57,7 +57,7 @@ function:
 | File sync & dotfiles | rsync, unison, stow |
 | Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text |
 | Development tooling | jdk, uv, bundler, jekyll, commitizen, github-cli, claude-code, codex |
-| Web browsers & automation | chromium, puppeteer-cli |
+| Web browsers & automation | google-chrome, puppeteer-cli |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3 |
 | Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
 | Office & research | libreoffice-fresh, zotero, pdftk |
@@ -70,6 +70,14 @@ Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
+
+The GNOME dock favourites in `home/martin/gnome.nix` are matched by exact
+desktop-entry ID, and GNOME silently drops any entry it cannot resolve — a
+wrong ID looks like the app simply refusing to pin. IDs must match the
+`.desktop` filename the package actually ships, which is not always the
+package name: Chromium installs `chromium-browser.desktop`, not
+`chromium.desktop`. Check with
+`ls /run/current-system/sw/share/applications` before adding a favourite.
 
 Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
 and the Proton Mail bridge. The bridge runs as a per-user systemd service using
