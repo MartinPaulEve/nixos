@@ -1,6 +1,14 @@
 # Networking: NetworkManager, firewall, Tailscale, and OpenVPN.
 { config, ... }:
 
+let
+  # NextDNS device identifier: this host's name prepended to the NextDNS
+  # profile domain (profile 715a8c), per NextDNS's "prepend the name" guidance,
+  # so queries from this machine are tagged as "nixos" in the dashboard.
+  # networking.hostName is already limited to NextDNS-safe characters
+  # (a–z, 0–9, -), so no sanitisation or `--` space-escaping is needed.
+  nextdnsEndpoint = "${config.networking.hostName}-715a8c.dns.nextdns.io";
+in
 {
   # Enable networking via NetworkManager.
   networking.networkmanager.enable = true;
@@ -11,8 +19,25 @@
   # OpenVPN 3 client (used for the hcommons VPN).
   programs.openvpn3.enable = true;
   
-  # Resolvd (needed for openvpn3)
-  services.resolved.enable = true;
+  # DNS via NextDNS over TLS. systemd-resolved is also required by openvpn3.
+  # Each server address carries the NextDNS endpoint as its TLS SNI (after `#`),
+  # which is how NextDNS applies the profile and this device's identifier.
+  services.resolved = {
+    enable = true;
+    dnsovertls = "true"; # strict DNS-over-TLS (fails closed if DoT is unavailable)
+    extraConfig = ''
+      DNS=45.90.28.0#${nextdnsEndpoint}
+      DNS=2a07:a8c0::#${nextdnsEndpoint}
+      DNS=45.90.30.0#${nextdnsEndpoint}
+      DNS=2a07:a8c1::#${nextdnsEndpoint}
+    '';
+  };
+
+  # Make resolved's global NextDNS servers authoritative for general lookups,
+  # instead of letting NetworkManager push DHCP-provided DNS as the default
+  # resolver (which would bypass NextDNS). Tailscale and openvpn3 register their
+  # split-DNS domains with resolved directly, so VPN name resolution still works.
+  networking.networkmanager.dns = "none";
 
   # Firewall, backed by nftables.
   networking.nftables.enable = true;
