@@ -28,4 +28,14 @@
       gnomeExtensions.dash-to-dock
     ];
   };
+
+  # Profile picture. AccountsService — which GNOME and GDM read — serves the user
+  # icon from /var/lib/AccountsService/icons/<user>, so link that at the image
+  # tracked in this repo. Home Manager installs the same file as ~/.face, which is
+  # AccountsService's per-user fallback; see home/martin/avatar.nix. Because this
+  # is a store symlink, changing the avatar in GNOME Settings will not stick —
+  # replace home/martin/avatar.jpg and rebuild instead.
+  systemd.tmpfiles.rules = [
+    "L+ /var/lib/AccountsService/icons/martin - - - - ${../../home/martin/avatar.jpg}"
+  ];
 }
