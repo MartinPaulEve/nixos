@@ -82,12 +82,9 @@ in
     gparted                  # Partition editor
     safeeyes                 # Break reminder to reduce eye strain
 
-    # --- Miscellaneous ---
-    # herdr — https://github.com/ogulcancelik/herdr
-    inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default
-    # worksummary — https://github.com/MartinPaulEve/worksummary
-    # Self-authored work-logging CLI; bundles its own fish completion.
-    inputs.worksummary.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # --- Miscellaneous (tools installed from third-party flakes/systems) ---
+    inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default                # Terminal multiplexer for AI agents
+    inputs.worksummary.packages.${pkgs.stdenv.hostPlatform.system}.default          # Self-authored work-logging CLI; bundles its own fish completion.
   ];
 
   # Register the Zotero LibreOffice integration extension into LibreOffice.
