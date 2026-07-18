@@ -125,6 +125,26 @@ Its fish completion ships inside the package (under
 `share/fish/vendor_completions.d/`), so fish loads it automatically once the
 package is installed — no separate completion wiring required.
 
+Tailscale's node identity lives in `/var/lib/tailscale/tailscaled.state`, not in
+this repo — it cannot be expressed declaratively, because the node key is
+generated at registration. `nixos-rebuild` preserves that file, so rebuilding
+never creates a duplicate node. A fresh install or a recreated VM starts with an
+empty `/var`, so `tailscale up` registers a *new* node; the old one still holds
+the name, the new one is suffixed (`nixos-1`), and MagicDNS keeps resolving
+`nixos` to the stale, offline node — so inbound SSH and ping to it simply hang.
+
+To keep the same identity across a reinstall, preserve and restore that file:
+
+```sh
+sudo cp /var/lib/tailscale/tailscaled.state ~/tailscaled.state.bak      # before
+sudo install -Dm600 ~/tailscaled.state.bak \
+  /var/lib/tailscale/tailscaled.state                                   # after, before `tailscale up`
+```
+
+Failing that, delete the stale node in the Tailscale admin console *before*
+running `tailscale up`, so the new registration reclaims the name. Disabling key
+expiry on the node stops it lapsing while the VM is powered off.
+
 Home Manager is integrated as a NixOS module, so the whole system (including
 the per-user environment) is built and switched in one `nixos-rebuild`. The
 fish configuration is fully managed here, having replaced an earlier GNU Stow
