@@ -56,7 +56,7 @@ function:
 | Terminal / shell | eza, btop, zellij, fastfetch |
 | File sync & dotfiles | rsync, unison, stow |
 | Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text |
-| Development tooling | jdk, uv, bundler, jekyll, commitizen, github-cli, claude-code |
+| Development tooling | jdk, uv, bundler, jekyll, commitizen, github-cli, claude-code, codex |
 | Web browsers & automation | chromium, puppeteer-cli |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3 |
 | Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
