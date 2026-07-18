@@ -85,6 +85,9 @@ in
     # --- Miscellaneous ---
     # herdr — https://github.com/ogulcancelik/herdr
     inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default
+    # worksummary — https://github.com/MartinPaulEve/worksummary
+    # Self-authored work-logging CLI; bundles its own fish completion.
+    inputs.worksummary.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 
   # Register the Zotero LibreOffice integration extension into LibreOffice.
