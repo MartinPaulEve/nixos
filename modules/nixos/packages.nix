@@ -49,8 +49,8 @@ in
     # docker CLI is provided by virtualisation.docker (see virtualisation.nix)
 
     # --- Web browsers & automation ---
-    chromium                 # Web browser
-    puppeteer-cli            # Headless-Chrome automation CLI
+    google-chrome            # Web browser (unfree; desktop ID google-chrome.desktop)
+    puppeteer-cli            # Headless-Chrome automation CLI (bundles its own Chromium)
 
     # --- Networking & VPN ---
     tailscale                # Mesh VPN
