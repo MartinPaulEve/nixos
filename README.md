@@ -26,7 +26,7 @@ modules/
     plymouth-themes/       Vendored Plymouth boot theme (nixos-mac-style)
     printing.nix           CUPS + Avahi
     security.nix           SSH, 1Password, YubiKey, GnuPG
-    users.nix              User accounts and login shell
+    users.nix              User accounts, login shell, SSH authorized keys
     virtualisation.nix     Docker
 home/                      Home Manager wiring, attached as a NixOS module
   default.nix              Enables home-manager and attaches per-user config
