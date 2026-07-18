@@ -38,6 +38,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     shell.nix              Starship prompt + Atuin history
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
+    zotero.nix             Registers the Zotero LibreOffice extension (per-user)
     functions/             Fish functions, linked into ~/.config/fish/functions
     unison/                Unison profile source
     whipper/               Whipper config source

@@ -87,20 +87,8 @@ in
     inputs.worksummary.packages.${pkgs.stdenv.hostPlatform.system}.default          # Self-authored work-logging CLI; bundles its own fish completion.
   ];
 
-  # Register the Zotero LibreOffice integration extension into LibreOffice.
-  system.userActivationScripts.installZoteroLibreOfficeExtension = {
-    text = ''
-      libreoffice_program="${pkgs.libreoffice}/lib/libreoffice/program"
-      zotero_oxt="${pkgs.zotero}/lib/integration/libreoffice/Zotero_LibreOffice_Integration.oxt"
-
-      if [ -x "$libreoffice_program/unopkg" ] && [ -f "$zotero_oxt" ]; then
-        (
-          cd "$libreoffice_program"
-          ./unopkg add --force "$zotero_oxt"
-        )
-      else
-        echo "Could not locate LibreOffice unopkg or Zotero LibreOffice extension" >&2
-      fi
-    '';
-  };
+  # The Zotero↔LibreOffice integration is registered per-user via Home Manager
+  # (home/martin/zotero.nix), not a system.userActivationScripts fragment: the
+  # latter runs user activation for every session including gdm-greeter, which
+  # hung switch-to-configuration on a D-Bus timeout.
 }
