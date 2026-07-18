@@ -35,6 +35,11 @@ in
         "2a07:a8c1::#${nextdnsEndpoint}"
       ];
       DNSOverTLS = "true";
+      # Validate DNSSEC where the resolver supports it (NextDNS does), but
+      # downgrade gracefully for resolvers that don't — Tailscale/openvpn3
+      # split-DNS — so VPN name resolution keeps working. Use "true" for strict
+      # end-to-end validation (higher breakage risk on unsigned/broken zones).
+      DNSSEC = "allow-downgrade";
     };
   };
 
