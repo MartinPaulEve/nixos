@@ -55,7 +55,7 @@ in
     #
     #   x86_64-linux, x86_64-darwin, aarch64-darwin
     #
-    # This host is aarch64-linux (ARM VM on Apple Silicon), so evaluation fails
+    # The original host is aarch64-linux (ARM VM on Apple Silicon), so evaluation fails
     # with "not available on the requested hostPlatform". allowUnsupportedSystem
     # does NOT rescue it: that flag only suppresses the platform check, and the
     # build then fails anyway because there is no ARM binary to fetch. Emulating
