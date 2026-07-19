@@ -57,7 +57,7 @@ function:
 | File sync & dotfiles | rsync, unison, stow |
 | Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text |
 | Development tooling | jdk, uv, bundler, jekyll, commitizen, github-cli, claude-code, codex |
-| Web browsers & automation | google-chrome, puppeteer-cli |
+| Web browsers & automation | chromium, puppeteer-cli |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3 |
 | Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
 | Office & research | libreoffice-fresh, zotero, pdftk |
@@ -71,12 +71,18 @@ insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
 
+The browser is Chromium rather than Google Chrome: Google ships no
+`aarch64-linux` build of Chrome, and this host is ARM, so `google-chrome`
+refuses to evaluate. `allowUnsupportedSystem` does not help — there is no ARM
+binary to unpack. `packages.nix` carries a commented-out `google-chrome` line
+and the full rationale, for use if this config is ever run on x86_64.
+
 The GNOME dock favourites in `home/martin/gnome.nix` are matched by exact
 desktop-entry ID, and GNOME silently drops any entry it cannot resolve — a
 wrong ID looks like the app simply refusing to pin. IDs must match the
 `.desktop` filename the package actually ships, which is not always the
 package name: Chromium installs `chromium-browser.desktop`, not
-`chromium.desktop`. Check with
+`chromium.desktop`, and Telegram installs `org.telegram.desktop`. Check with
 `ls /run/current-system/sw/share/applications` before adding a favourite.
 
 Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
