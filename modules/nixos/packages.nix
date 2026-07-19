@@ -49,7 +49,30 @@ in
     # docker CLI is provided by virtualisation.docker (see virtualisation.nix)
 
     # --- Web browsers & automation ---
-    google-chrome            # Web browser (unfree; desktop ID google-chrome.desktop)
+    # Chromium stands in for Google Chrome, which cannot be installed here.
+    # Chrome is a Google-built binary that nixpkgs only repackages, and Google
+    # publishes no ARM Linux build, so meta.platforms is:
+    #
+    #   x86_64-linux, x86_64-darwin, aarch64-darwin
+    #
+    # This host is aarch64-linux (ARM VM on Apple Silicon), so evaluation fails
+    # with "not available on the requested hostPlatform". allowUnsupportedSystem
+    # does NOT rescue it: that flag only suppresses the platform check, and the
+    # build then fails anyway because there is no ARM binary to fetch. Emulating
+    # x86_64 via binfmt would work in principle but is a poor trade for a
+    # browser, which wants native graphics and CPU.
+    #
+    # On an x86_64-linux host, drop Chromium and uncomment the line below
+    # (allowUnfree is already set in modules/nixos/nix.nix, so no extra config
+    # is needed). Chrome's desktop ID is google-chrome.desktop, so the dock
+    # favourites in home/martin/gnome.nix need updating to match.
+    #
+    #   google-chrome        # Web browser (unfree; desktop ID google-chrome.desktop)
+    #
+    # If the draw is Google-account sync or Widevine DRM rather than Chrome
+    # itself, brave or vivaldi are Chromium-based, build on aarch64-linux, and
+    # keep working sync — Google restricts the sync API to official builds.
+    chromium                 # Web browser (desktop ID chromium-browser.desktop)
     puppeteer-cli            # Headless-Chrome automation CLI (bundles its own Chromium)
 
     # --- Networking & VPN ---
