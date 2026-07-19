@@ -63,7 +63,7 @@ function:
 | Office & research | libreoffice-fresh, zotero, pdftk |
 | Graphics & media | gimp-with-plugins, vlc, ymuse |
 | Communication | signal-desktop, telegram-desktop |
-| System & disk utilities | gparted, safeeyes |
+| System & disk utilities | file-roller, gparted, safeeyes |
 | Miscellaneous | herdr, worksummary |
 
 Sublime Text is pulled from a dedicated `pkgs` instance that permits the
