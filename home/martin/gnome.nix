@@ -238,7 +238,7 @@ with lib.hm.gvariant;
 
     "org/gnome/shell" = {
       enabled-extensions = [ "dash-to-dock@micxgx.gmail.com" ];
-      favorite-apps = [ "thunderbird.desktop" "signal.desktop" "org.telegram.desktop" "firefox.desktop" "chromium-browser.desktop" "org.gnome.Music.desktop" "org.gnome.Nautilus.desktop" "org.gnome.Console.desktop" "pycharm.desktop" "1password.desktop" "sublime_text.desktop" "zotero.desktop" "writer.desktop" ];
+      favorite-apps = [ "thunderbird.desktop" "signal.desktop" "org.telegram.desktop" "firefox.desktop" "chromium-browser.desktop" "org.gnome.Music.desktop" "org.gnome.Nautilus.desktop" "org.gnome.Console.desktop" "1password.desktop" "webstorm.desktop" "phpstorm.desktop" "pycharm.desktop" "sublime_text.desktop" "zotero.desktop" "calc.desktop" "writer.desktop" "gimp.desktop"];
     };
 
     "org/gnome/shell/extensions/dash-to-dock" = {
