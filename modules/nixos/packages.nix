@@ -103,6 +103,7 @@ in
     telegram-desktop         # Telegram messenger
 
     # --- System & disk utilities ---
+    file-roller              # Zip file handler
     gparted                  # Partition editor
     safeeyes                 # Break reminder to reduce eye strain
 
