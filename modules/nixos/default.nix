@@ -17,5 +17,6 @@
     ./security.nix
     ./users.nix
     ./virtualisation.nix
+    ./vm.nix
   ];
 }

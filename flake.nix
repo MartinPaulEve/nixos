@@ -42,5 +42,24 @@
         ./hosts/nixos
       ];
     };
+
+    # The same system rebuilt for x86_64, so the config can be test-driven in a
+    # local QEMU VM on a non-Mac host (the real machine is an aarch64 Parallels
+    # guest). Build and run with:
+    #   nix build .#nixosConfigurations.nixos-vm-x86.config.system.build.vm
+    #   ./result/bin/run-nixos-vm
+    # then view it with: remote-viewer spice://127.0.0.1:5930
+    # (SPICE/VM settings live in modules/nixos/vm.nix.)
+    nixosConfigurations.nixos-vm-x86 = nixpkgs.lib.nixosSystem {
+      specialArgs = { inherit inputs; };
+      modules = [
+        ./hosts/nixos
+        ({ lib, ... }: {
+          nixpkgs.hostPlatform = "x86_64-linux";
+          # Parallels guest tools are pointless (and unfree) under QEMU.
+          hardware.parallels.enable = lib.mkForce false;
+        })
+      ];
+    };
   };
 }
