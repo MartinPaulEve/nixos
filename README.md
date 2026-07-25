@@ -71,6 +71,11 @@ insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
 
+`programs.nix-ld.enable` is set in `packages.nix` so prebuilt, non-Nix ELF
+binaries can find a dynamic loader at the FHS `/lib64/ld-linux` path NixOS
+otherwise lacks. `uv` relies on this: the standalone CPython builds it downloads
+are dynamically linked for a normal FHS layout and will not run without it.
+
 The browser is Chromium rather than Google Chrome: Google ships no
 `aarch64-linux` build of Chrome, and this host is ARM, so `google-chrome`
 refuses to evaluate. `allowUnsupportedSystem` does not help — there is no ARM
@@ -84,6 +89,17 @@ wrong ID looks like the app simply refusing to pin. IDs must match the
 package name: Chromium installs `chromium-browser.desktop`, not
 `chromium.desktop`, and Telegram installs `org.telegram.desktop`. Check with
 `ls /run/current-system/sw/share/applications` before adding a favourite.
+
+The user profile picture is tracked as `home/martin/avatar.jpg`. `users.nix`
+links it to `/var/lib/AccountsService/icons/martin` *and* writes the
+AccountsService state file `/var/lib/AccountsService/users/martin` with a
+matching `Icon=` entry. Both are required for the GDM login screen: GDM reads
+avatars over D-Bus from AccountsService, which only reports an icon it has
+recorded in that state file. The `~/.face` copy installed by
+`home/martin/avatar.nix` is not sufficient on its own, because the greeter runs
+as the `gdm` user and cannot read the `0700` home directory. Because both paths
+are managed declaratively, changing the avatar in GNOME Settings will not
+persist — replace `avatar.jpg` and rebuild.
 
 Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
 and the Proton Mail bridge. The bridge runs as a per-user systemd service using

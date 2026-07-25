@@ -1,3 +1,5 @@
 # Nix build output symlinks.
 result
 result-*
+.claude
+
