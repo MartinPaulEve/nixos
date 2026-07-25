@@ -112,6 +112,14 @@ in
     inputs.worksummary.packages.${pkgs.stdenv.hostPlatform.system}.default          # Self-authored work-logging CLI; bundles its own fish completion.
   ];
 
+  # nix-ld provides a stub dynamic loader at the conventional /lib64/ld-linux
+  # path (which does not otherwise exist on NixOS), so prebuilt, non-Nix ELF
+  # binaries can find an interpreter and their libraries. uv needs this: it
+  # downloads standalone CPython builds from python-build-standalone that are
+  # dynamically linked against a normal FHS layout, and without nix-ld they fail
+  # to execute with "no such file or directory" on the missing loader.
+  programs.nix-ld.enable = true;
+
   # The Zotero↔LibreOffice integration is registered per-user via Home Manager
   # (home/martin/zotero.nix), not a system.userActivationScripts fragment: the
   # latter runs user activation for every session including gdm-greeter, which

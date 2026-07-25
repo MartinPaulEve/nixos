@@ -28,6 +28,7 @@ modules/
     security.nix           SSH, 1Password, YubiKey, GnuPG
     users.nix              User accounts, login shell, SSH authorized keys
     virtualisation.nix     Docker
+    vm.nix                 QEMU/SPICE test-VM variant (build-vm only; never affects the real system)
 home/                      Home Manager wiring, attached as a NixOS module
   default.nix              Enables home-manager and attaches per-user config
   martin/                  Per-user configuration
@@ -43,6 +44,12 @@ home/                      Home Manager wiring, attached as a NixOS module
     functions/             Fish functions, linked into ~/.config/fish/functions
     unison/                Unison profile source
     whipper/               Whipper config source
+scripts/                   Environment-management commands (on PATH; see scripts/README.md)
+  build_aarch64_mac.sh     Rebuild + switch the real system (Mac/Parallels)
+  build_x86_vm_spice.sh    Build the x86_64 SPICE test VM
+  vm_start.sh              Start the test VM (headless, SPICE on localhost:5930)
+  vm_shutdown.sh           Gracefully shut the test VM down
+  spice_vm_connect.sh      Open remote-viewer on the running test VM
 ```
 
 ## Packages
@@ -71,6 +78,11 @@ insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
 
+`programs.nix-ld.enable` is set in `packages.nix` so prebuilt, non-Nix ELF
+binaries can find a dynamic loader at the FHS `/lib64/ld-linux` path NixOS
+otherwise lacks. `uv` relies on this: the standalone CPython builds it downloads
+are dynamically linked for a normal FHS layout and will not run without it.
+
 The browser is Chromium rather than Google Chrome: Google ships no
 `aarch64-linux` build of Chrome, and this host is ARM, so `google-chrome`
 refuses to evaluate. `allowUnsupportedSystem` does not help — there is no ARM
@@ -84,6 +96,17 @@ wrong ID looks like the app simply refusing to pin. IDs must match the
 package name: Chromium installs `chromium-browser.desktop`, not
 `chromium.desktop`, and Telegram installs `org.telegram.desktop`. Check with
 `ls /run/current-system/sw/share/applications` before adding a favourite.
+
+The user profile picture is tracked as `home/martin/avatar.jpg`. `users.nix`
+links it to `/var/lib/AccountsService/icons/martin` *and* writes the
+AccountsService state file `/var/lib/AccountsService/users/martin` with a
+matching `Icon=` entry. Both are required for the GDM login screen: GDM reads
+avatars over D-Bus from AccountsService, which only reports an icon it has
+recorded in that state file. The `~/.face` copy installed by
+`home/martin/avatar.nix` is not sufficient on its own, because the greeter runs
+as the `gdm` user and cannot read the `0700` home directory. Because both paths
+are managed declaratively, changing the avatar in GNOME Settings will not
+persist — replace `avatar.jpg` and rebuild.
 
 Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
 and the Proton Mail bridge. The bridge runs as a per-user systemd service using
@@ -168,8 +191,31 @@ setup; `home/default.nix` sets `backupFileExtension` and the fish files use
 
 ## Rebuilding
 
+Two hardware environments build from this flake, each with a script in
+`scripts/` (on PATH on NixOS machines; see `scripts/README.md`):
+
+The real system — the aarch64 Parallels guest on the Mac:
+
 ```sh
-sudo nixos-rebuild switch --flake ~/nixos#nixos
+build_aarch64_mac.sh        # sudo nixos-rebuild switch --flake ~/nixos#nixos
 ```
 
 Update inputs with `nix flake update` (commit the resulting `flake.lock`).
+
+## Testing in a VM
+
+The `nixos-vm-x86` flake output rebuilds the same configuration for x86_64 so
+config changes can be test-driven in a local QEMU VM on any x86_64 Linux host
+with Nix and KVM, before touching the real machine. The VM runs headless with
+its display served over SPICE (settings in `modules/nixos/vm.nix`; VM-only
+login password `nixos`):
+
+```sh
+build_x86_vm_spice.sh       # build the VM runner
+vm_start.sh                 # boot it in the background
+spice_vm_connect.sh         # view it: remote-viewer spice://127.0.0.1:5930
+vm_shutdown.sh              # graceful ACPI power-off
+```
+
+None of this affects the real system: the VM variant and the x86_64 output
+evaluate separately, and the `nixos` output's derivation is unchanged by them.
