@@ -10,6 +10,13 @@
   # Drop it so the function wins; `l`/`ll` are kept and route through it.
   environment.shellAliases.ls = lib.mkForce null;
 
+  # Repo helper scripts (see scripts/README.md) on PATH for every shell:
+  # /etc/profile picks this up for bash, and the NixOS fish module translates
+  # it into /etc/fish/config.fish via babelfish.
+  environment.shellInit = ''
+    export PATH="$PATH:/home/martin/nixos/scripts"
+  '';
+
   users.users."martin" = {
     isNormalUser = true;
     description = "Martin Paul Eve";

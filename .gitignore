@@ -3,3 +3,5 @@ result
 result-*
 .claude
 
+# Disk image created by the run-*-vm script (see modules/nixos/vm.nix).
+*.qcow2
