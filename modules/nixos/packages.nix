@@ -1,5 +1,5 @@
 # System-wide packages and package-related activation.
-{ pkgs, inputs, ... }:
+{ pkgs, inputs, lib, ... }:
 
 let
   # A pkgs instance that permits the (insecure) OpenSSL 1.1 that Sublime Text needs.
@@ -46,6 +46,22 @@ in
     github-cli               # GitHub CLI (`gh`)
     claude-code              # Anthropic Claude Code CLI
     codex                    # OpenAI Codex CLI coding agent
+    pkg-config               # Package checker
+    libmysqlclient           # MySQL client
+    mariadb                  # MariaDB
+    mariadb-connector-c      # MariaDB C files
+    mariadb-connector-c.dev  # MariaDB C headers
+    stdenv.cc                # Native C/C++ compiler and linker
+    gnumake                  # Build toolchain
+    binutils
+    cmake
+    ninja
+    meson
+    autoconf
+    automake
+    libtool
+    m4
+    patch
     # docker CLI is provided by virtualisation.docker (see virtualisation.nix)
 
     # --- Web browsers & automation ---
@@ -119,6 +135,13 @@ in
   # dynamically linked against a normal FHS layout, and without nix-ld they fail
   # to execute with "no such file or directory" on the missing loader.
   programs.nix-ld.enable = true;
+
+  # We have to set the environment variable for pkg-config to be able to find
+  # the C header files for MariaDB. This let us buils mysqlclient in python.
+  environment.sessionVariables.PKG_CONFIG_PATH =
+    lib.makeSearchPath "lib/pkgconfig" [
+      pkgs.mariadb-connector-c.dev
+    ];
 
   # The Zotero↔LibreOffice integration is registered per-user via Home Manager
   # (home/martin/zotero.nix), not a system.userActivationScripts fragment: the
