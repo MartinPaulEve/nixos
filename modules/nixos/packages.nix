@@ -13,6 +13,10 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
+    # --- Tools to mount userspace devices ---
+    sshfs                    # SSH filesystem mount
+    fuse                     # Filesystems in Userspace
+
     # --- Core command-line utilities ---
     wget                     # HTTP(S) file downloader
     curl                     # Multi-protocol data-transfer tool
