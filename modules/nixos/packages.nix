@@ -29,6 +29,8 @@ in
     btop                     # Resource monitor (CPU / memory / network)
     zellij                   # Terminal multiplexer
     fastfetch                # System information fetch tool
+    byobu                    # Terminal multiplexer
+    tmux                     # Terminal multiplexer
 
     # --- File sync & dotfile management ---
     rsync                    # Fast incremental file copying / backup
