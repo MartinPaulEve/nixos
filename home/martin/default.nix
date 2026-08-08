@@ -10,6 +10,7 @@
     ./obsidian.nix
     ./shell.nix
     ./unison.nix
+    ./waldorf.nix
     ./whipper.nix
     ./zotero.nix
   ];
