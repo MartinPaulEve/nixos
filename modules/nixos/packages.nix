@@ -129,6 +129,7 @@ in
     file-roller              # Zip file handler
     gparted                  # Partition editor
     safeeyes                 # Break reminder to reduce eye strain
+    remmina                  # RDP client
 
     # --- Miscellaneous (tools installed from third-party flakes/systems) ---
     inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default                # Terminal multiplexer for AI agents
