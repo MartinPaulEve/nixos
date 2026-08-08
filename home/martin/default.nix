@@ -7,6 +7,7 @@
     ./fish.nix
     ./git.nix
     ./gnome.nix
+    ./obsidian.nix
     ./shell.nix
     ./unison.nix
     ./whipper.nix
