@@ -36,6 +36,7 @@ in
     jetbrains.phpstorm       # PHP IDE
     jetbrains.webstorm       # JavaScript / web IDE
     pkgs-insecure.sublime4   # Sublime Text (needs OpenSSL 1.1, see pkgs-insecure)
+    obsidian                 # Note-taking app
 
     # --- Development tooling ---
     jdk                      # Java Development Kit
