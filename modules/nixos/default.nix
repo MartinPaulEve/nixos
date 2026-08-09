@@ -13,6 +13,7 @@
     ./networking.nix
     ./nix.nix
     ./packages.nix
+    ./power.nix
     ./printing.nix
     ./security.nix
     ./users.nix
