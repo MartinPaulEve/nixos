@@ -8,6 +8,7 @@
     ./fish.nix
     ./git.nix
     ./gnome.nix
+    ./mac-folders.nix
     ./obsidian.nix
     ./onepassword.nix
     ./shell.nix
