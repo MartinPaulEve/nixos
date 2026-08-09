@@ -4,6 +4,7 @@
 {
   imports = [
     ./avatar.nix
+    ./byobu.nix
     ./fish.nix
     ./git.nix
     ./gnome.nix
