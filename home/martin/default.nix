@@ -8,6 +8,7 @@
     ./git.nix
     ./gnome.nix
     ./obsidian.nix
+    ./onepassword.nix
     ./shell.nix
     ./unison.nix
     ./waldorf.nix
