@@ -38,6 +38,41 @@ let
       mainProgram = "commonmeta";
     };
   };
+
+  # sequoia-cli: publishes Standard.site blog documents to the AT Protocol
+  # (https://sequoia.pub). Distributed only on npm, not in nixpkgs. The
+  # published tarball is a single self-contained `bun build` bundle (all deps
+  # inlined, no node_modules, no native/postinstall steps), so we just fetch it
+  # and wrap it with node. xdg-utils is on PATH so `sequoia login` can open a
+  # browser for OAuth. Refresh on bump: update version + hash (via
+  # `nix store prefetch-file <tarball-url>`).
+  sequoia-cli = pkgs.stdenvNoCC.mkDerivation rec {
+    pname = "sequoia-cli";
+    version = "0.5.7";
+
+    src = pkgs.fetchurl {
+      url = "https://registry.npmjs.org/sequoia-cli/-/sequoia-cli-${version}.tgz";
+      hash = "sha256-z2gUEKAIfU/IY9y8lcTgwIhex4g8E7lLIRV2Bqgc+hM=";
+    };
+
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p "$out/lib/sequoia-cli"
+      cp -r dist package.json README.md "$out/lib/sequoia-cli/"
+      makeWrapper ${pkgs.nodejs}/bin/node "$out/bin/sequoia" \
+        --add-flags "$out/lib/sequoia-cli/dist/index.js" \
+        --prefix PATH : ${lib.makeBinPath [ pkgs.xdg-utils ]}
+      runHook postInstall
+    '';
+
+    meta = {
+      description = "Publish Standard.site documents to the AT Protocol";
+      homepage = "https://sequoia.pub";
+      mainProgram = "sequoia";
+    };
+  };
 in
 {
   environment.systemPackages = with pkgs; [
@@ -78,6 +113,7 @@ in
     bundler                  # Ruby dependency manager
     jekyll                   # Static site generator
     commonmeta               # Scholarly-metadata format converter (built above)
+    sequoia-cli              # Publish blog posts to the AT Protocol (built above)
     commitizen               # Conventional-commit helper
     github-cli               # GitHub CLI (`gh`)
     claude-code              # Anthropic Claude Code CLI
