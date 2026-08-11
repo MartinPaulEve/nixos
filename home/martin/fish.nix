@@ -16,7 +16,23 @@ in
     # Show system info on interactive shell start (from the previous config.fish).
     # The starship prompt and atuin history are wired in automatically by their
     # own Home Manager modules; see ./shell.nix.
-    interactiveShellInit = "fastfetch";
+    #
+    # Launch byobu automatically for interactive shells. The guards keep this from
+    # recursing: byobu starts tmux, which spawns a fresh interactive fish with
+    # $TMUX set, so the nested shell skips the exec and just runs fastfetch. We
+    # also bail out when already inside byobu ($BYOBU_BACKEND) or when there is no
+    # controlling tty (e.g. scp/rsync, editor-embedded shells) to avoid hijacking
+    # non-visual sessions.
+    interactiveShellInit = ''
+      if status is-interactive
+          and not set -q TMUX
+          and not set -q BYOBU_BACKEND
+          and test -t 1
+          exec byobu
+      end
+
+      fastfetch
+    '';
   };
 
   # These paths were previously GNU Stow symlinks into ~/dotfiles. Home Manager's
