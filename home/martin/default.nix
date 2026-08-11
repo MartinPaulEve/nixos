@@ -12,6 +12,7 @@
     ./obsidian.nix
     ./onepassword.nix
     ./shell.nix
+    ./sublime.nix
     ./unison.nix
     ./waldorf.nix
     ./whipper.nix
