@@ -61,6 +61,8 @@ in
       jekyll_posts_path = "${blog}/_posts";
       jekyll_drafts_path = "${blog}/_drafts";
       jekyll_templates_path = "${blog}/_templates";
+      # New posts/drafts get a .md extension rather than the plugin's default .markdown.
+      jekyll_markdown_extension = "md";
     };
   };
 }
