@@ -34,10 +34,11 @@ home/                      Home Manager wiring, attached as a NixOS module
   martin/                  Per-user configuration
     default.nix
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
-    fish.nix               Fish shell: fastfetch + autoloaded functions
+    fish.nix               Fish shell: byobu auto-launch, fastfetch, autoloaded functions
     git.nix                Git config, incl. SSH commit signing via 1Password
     gnome.nix              GNOME settings as declarative dconf
     shell.nix              Starship prompt + Atuin history
+    sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
     zotero.nix             Registers the Zotero LibreOffice extension (per-user)
@@ -63,8 +64,8 @@ function:
 | Terminal / shell | eza, btop, zellij, fastfetch |
 | File sync & dotfiles | rsync, unison, stow |
 | Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text |
-| Development tooling | jdk, uv, bundler, jekyll, commitizen, github-cli, claude-code, codex |
-| Web browsers & automation | chromium, puppeteer-cli |
+| Development tooling | jdk, uv, bundler, jekyll, commonmeta, commitizen, github-cli, claude-code, codex |
+| Web browsers & automation | chromium, puppeteer-cli, chromedriver |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3 |
 | Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
 | Office & research | libreoffice-fresh, zotero, pdftk |
@@ -77,6 +78,21 @@ Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
+
+Sublime Text plugins are pinned declaratively in `home/martin/sublime.nix`
+rather than installed at runtime through Package Control: each plugin's release
+tarball is fetched by hash and unpacked into `Packages/`, where Sublime loads it
+automatically. This installs the Jekyll plugin (pointed at the blog's
+`_posts`/`_drafts`/`_templates`) and MarkdownEditing (enhanced markdown editing
+with automatic folding of inline link URLs). Because the settings files are
+store symlinks, adjust plugin options in the Nix module and rebuild — not
+through Sublime's own settings UI.
+
+`commonmeta` (a scholarly-metadata format converter) is not packaged in
+nixpkgs, so `packages.nix` builds it from its pinned upstream release with
+`buildGoModule`. Its upstream test suite is disabled in the build because it
+reaches the network and diffs against live services; on a version bump, reset
+`vendorHash` to `lib.fakeHash`, rebuild, and copy the reported hash back.
 
 `programs.nix-ld.enable` is set in `packages.nix` so prebuilt, non-Nix ELF
 binaries can find a dynamic loader at the FHS `/lib64/ld-linux` path NixOS
@@ -188,6 +204,11 @@ the per-user environment) is built and switched in one `nixos-rebuild`. The
 fish configuration is fully managed here, having replaced an earlier GNU Stow
 setup; `home/default.nix` sets `backupFileExtension` and the fish files use
 `force = true` so activation cleanly supersedes any leftover stow symlinks.
+
+Interactive fish shells launch byobu automatically (`home/martin/fish.nix`).
+The init guards against recursion — byobu starts tmux, whose nested fish has
+`$TMUX` set and so skips the re-exec — and against having no controlling tty, so
+scp/rsync and editor-embedded shells are left alone.
 
 ## Rebuilding
 
