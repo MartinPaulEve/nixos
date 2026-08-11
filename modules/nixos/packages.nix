@@ -10,6 +10,34 @@ let
       permittedInsecurePackages = [ "openssl-1.1.1w" ];
     };
   };
+
+  # commonmeta: CLI to convert scholarly metadata between formats (Crossref,
+  # DataCite, Schema.org, CSL, …). Not in nixpkgs, so we build it from the
+  # pinned upstream release. Refresh on bump: set vendorHash to lib.fakeHash,
+  # rebuild, and copy the reported hash back.
+  commonmeta = pkgs.buildGoModule rec {
+    pname = "commonmeta";
+    version = "0.35.2";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "front-matter";
+      repo = "commonmeta";
+      rev = "v${version}";
+      hash = "sha256-solx6gVY77FoMMeSv7Sf3ccSIhhTMRjSH/PnDbVNavk=";
+    };
+
+    vendorHash = "sha256-gzEnypW5VD9q3v+1zbI55e2mNIwz4mA0M9W6oh1SX5Y=";
+
+    # Upstream tests reach the network and diff against live-service fixtures.
+    doCheck = false;
+
+    meta = {
+      description = "Convert scholarly metadata between formats";
+      homepage = "https://github.com/front-matter/commonmeta";
+      license = lib.licenses.mit;
+      mainProgram = "commonmeta";
+    };
+  };
 in
 {
   environment.systemPackages = with pkgs; [
@@ -49,6 +77,7 @@ in
     uv                       # Fast Python package / project manager
     bundler                  # Ruby dependency manager
     jekyll                   # Static site generator
+    commonmeta               # Scholarly-metadata format converter (built above)
     commitizen               # Conventional-commit helper
     github-cli               # GitHub CLI (`gh`)
     claude-code              # Anthropic Claude Code CLI
