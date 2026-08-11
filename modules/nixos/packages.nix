@@ -126,6 +126,7 @@ in
     # keep working sync — Google restricts the sync API to official builds.
     chromium                 # Web browser (desktop ID chromium-browser.desktop)
     puppeteer-cli            # Headless-Chrome automation CLI (bundles its own Chromium)
+    chromedriver             # Add chromedriver for selenium
 
     # --- Networking & VPN ---
     tailscale                # Mesh VPN
