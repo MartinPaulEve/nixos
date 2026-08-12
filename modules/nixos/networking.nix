@@ -13,6 +13,14 @@ in
   # Enable networking via NetworkManager.
   networking.networkmanager.enable = true;
 
+  # Static /etc/hosts entries. NixOS generates /etc/hosts from this attrset
+  # (IP -> list of names), and nsswitch consults `files` before `dns`, so these
+  # take precedence over NextDNS resolution. Add more names to an IP's list, or
+  # more IP keys, to extend the list.
+  networking.hosts = {
+    "54.39.192.206" = [ "reclaim" ];
+  };
+
   # Tailscale mesh VPN.
   services.tailscale.enable = true;
 
