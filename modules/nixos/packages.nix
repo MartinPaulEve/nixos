@@ -111,7 +111,10 @@ in
     jdk                      # Java Development Kit
     uv                       # Fast Python package / project manager
     bundler                  # Ruby dependency manager
-    jekyll                   # Static site generator
+    (jekyll.override {       # Static site generator; full variant bundles
+      withOptionalDependencies = true;  # jekyll-feed etc. needed by the blog
+    })
+    imagemagick              # `convert` — used by the blog's og_image plugin
     commonmeta               # Scholarly-metadata format converter (built above)
     sequoia-cli              # Publish blog posts to the AT Protocol (built above)
     commitizen               # Conventional-commit helper
