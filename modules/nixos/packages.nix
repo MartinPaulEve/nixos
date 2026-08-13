@@ -111,6 +111,9 @@ in
     jdk                      # Java Development Kit
     uv                       # Fast Python package / project manager
     bundler                  # Ruby dependency manager
+    php                      # PHP interpreter (CLI)
+    phpPackages.composer     # PHP dependency manager
+    subversion               # Subversion version control (svn)
     (jekyll.override {       # Static site generator; full variant bundles
       withOptionalDependencies = true;  # jekyll-feed etc. needed by the blog
     })
