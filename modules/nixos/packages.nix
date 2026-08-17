@@ -11,6 +11,26 @@ let
     };
   };
 
+  # Tor Browser only exists upstream as official stable binaries for
+  # x86_64/i686 Linux (no aarch64 build; only unofficial community ports and
+  # official nightlies, neither of which we want to trust for Tor). On the
+  # aarch64 host we therefore install the official nixpkgs package built for
+  # x86_64-linux and run it through QEMU user-mode emulation: the
+  # boot.binfmt.emulatedSystems setting below registers qemu-x86_64 with the
+  # kernel, so x86_64 ELF binaries execute transparently (and Nix gains
+  # x86_64-linux as an extra platform, with the closure coming from the binary
+  # cache). Emulation is slow for a browser — expect a long first start and
+  # sluggish rendering — but it keeps the trusted, reproducible upstream
+  # package. On an x86_64 host this collapses to the native package with no
+  # emulation. If upstream ever ships stable aarch64-linux builds (check
+  # tor-browser's meta.platforms after a nixpkgs bump), delete pkgs-x86_64 and
+  # the binfmt line and use pkgs.tor-browser directly.
+  pkgs-x86_64 = import inputs.nixpkgs { system = "x86_64-linux"; };
+  tor-browser' =
+    if pkgs.stdenv.hostPlatform.isx86_64
+    then pkgs.tor-browser
+    else pkgs-x86_64.tor-browser;
+
   # commonmeta: CLI to convert scholarly metadata between formats (Crossref,
   # DataCite, Schema.org, CSL, …). Not in nixpkgs, so we build it from the
   # pinned upstream release. Refresh on bump: set vendorHash to lib.fakeHash,
@@ -169,6 +189,7 @@ in
     chromium                 # Web browser (desktop ID chromium-browser.desktop)
     puppeteer-cli            # Headless-Chrome automation CLI (bundles its own Chromium)
     chromedriver             # Add chromedriver for selenium
+    tor-browser'             # Tor Browser (x86_64 build under emulation on ARM, see above)
 
     # --- Networking & VPN ---
     tailscale                # Mesh VPN
@@ -207,6 +228,16 @@ in
     inputs.herdr.packages.${pkgs.stdenv.hostPlatform.system}.default                # Terminal multiplexer for AI agents
     inputs.worksummary.packages.${pkgs.stdenv.hostPlatform.system}.default          # Self-authored work-logging CLI; bundles its own fish completion.
   ];
+
+  # QEMU user-mode emulation for x86_64 binaries (Tor Browser, see above).
+  # Registers qemu-x86_64 as a binfmt_misc handler so the kernel runs x86_64
+  # ELF executables transparently, and adds x86_64-linux to the Nix daemon's
+  # extra-platforms so x86_64 store paths can be realised on this machine.
+  # Parallels cannot share macOS Rosetta with the guest (that needs a
+  # Virtualization.framework hypervisor), so QEMU is the only emulation option.
+  # Empty on x86_64 hosts (e.g. the nixos-vm-x86 flake output).
+  boot.binfmt.emulatedSystems =
+    lib.optionals pkgs.stdenv.hostPlatform.isAarch64 [ "x86_64-linux" ];
 
   # nix-ld provides a stub dynamic loader at the conventional /lib64/ld-linux
   # path (which does not otherwise exist on NixOS), so prebuilt, non-Nix ELF
