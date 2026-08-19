@@ -60,18 +60,20 @@ function:
 
 | Category | Packages |
 | --- | --- |
+| Userspace filesystem mounts | sshfs, fuse |
 | Core CLI utilities | wget, curl, nano, net-tools, expect |
-| Terminal / shell | eza, btop, zellij, fastfetch |
+| Terminal / shell | eza, btop, zellij, fastfetch, byobu, tmux |
 | File sync & dotfiles | rsync, unison, stow |
-| Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text |
-| Development tooling | jdk, uv, bundler, php, composer, subversion, jekyll, commonmeta, commitizen, github-cli, claude-code, codex |
-| Web browsers & automation | chromium, puppeteer-cli, chromedriver |
+| Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text, Obsidian |
+| Development tooling | jdk, uv, bundler, php, composer, subversion, jekyll, imagemagick, exiftool, commonmeta, sequoia-cli, commitizen, github-cli, claude-code, codex |
+| Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, mariadb (+ connector headers) |
+| Web browsers & automation | chromium, tor-browser, puppeteer-cli, chromedriver |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3 |
 | Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
 | Office & research | libreoffice-fresh, zotero, pdftk |
-| Graphics & media | gimp-with-plugins, vlc, ymuse |
+| Graphics & media | gimp-with-plugins, vlc, ymuse, yt-dlp |
 | Communication | signal-desktop, telegram-desktop |
-| System & disk utilities | file-roller, gparted, safeeyes |
+| System & disk utilities | file-roller, gparted, safeeyes, remmina |
 | Miscellaneous | herdr, worksummary |
 
 Sublime Text is pulled from a dedicated `pkgs` instance that permits the
@@ -94,6 +96,12 @@ nixpkgs, so `packages.nix` builds it from its pinned upstream release with
 reaches the network and diffs against live services; on a version bump, reset
 `vendorHash` to `lib.fakeHash`, rebuild, and copy the reported hash back.
 
+`sequoia-cli` (publishes blog posts to the AT Protocol) is likewise absent from
+nixpkgs. It is distributed only on npm, but the published tarball is a single
+self-contained `bun build` bundle, so `packages.nix` just fetches it by hash and
+wraps it with node — no npm install step. On a version bump, update the version
+and hash (`nix store prefetch-file <tarball-url>`).
+
 `programs.nix-ld.enable` is set in `packages.nix` so prebuilt, non-Nix ELF
 binaries can find a dynamic loader at the FHS `/lib64/ld-linux` path NixOS
 otherwise lacks. `uv` relies on this: the standalone CPython builds it downloads
@@ -104,6 +112,16 @@ The browser is Chromium rather than Google Chrome: Google ships no
 refuses to evaluate. `allowUnsupportedSystem` does not help — there is no ARM
 binary to unpack. `packages.nix` carries a commented-out `google-chrome` line
 and the full rationale, for use if this config is ever run on x86_64.
+
+Tor Browser has a similar ARM problem: upstream ships stable binaries only for
+x86_64/i686 Linux. Rather than emulating the x86_64 build (tried; unusably
+slow), `packages.nix` overrides the nixpkgs derivation on aarch64 to swap in
+the Tor Project's official *nightly* aarch64 tarball, keeping the rest of the
+packaging intact; x86_64 hosts get plain `pkgs.tor-browser`. Nightly date
+directories eventually rotate off the server, so the pinned URL goes stale —
+the comment in `packages.nix` explains how to bump it (and warns that the
+local network filter blocks `*.torproject.org`, so downloading needs an
+unfiltered route).
 
 The GNOME dock favourites in `home/martin/gnome.nix` are matched by exact
 desktop-entry ID, and GNOME silently drops any entry it cannot resolve — a
