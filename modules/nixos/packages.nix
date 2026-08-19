@@ -159,6 +159,7 @@ in
       withOptionalDependencies = true;  # jekyll-feed etc. needed by the blog
     })
     imagemagick              # `convert` — used by the blog's og_image plugin
+    exiftool                 # Embeds bibliographic metadata in the blog's PDF editions
     commonmeta               # Scholarly-metadata format converter (built above)
     sequoia-cli              # Publish blog posts to the AT Protocol (built above)
     commitizen               # Conventional-commit helper
