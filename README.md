@@ -20,10 +20,12 @@ modules/
     fonts.nix              System fonts, incl. Nerd Fonts
     keyd.nix               System-wide key remapping (evdev, Wayland-safe)
     localization.nix       Time zone, locale, console keymap
+    mounts.nix             Boot-time creation of ~/mounts sshfs mountpoints (tmpfiles)
     networking.nix         NetworkManager, firewall, Tailscale, OpenVPN, NextDNS (DoT)
     nix.nix                Nix daemon settings, unfree
     packages.nix           System packages + Zotero/LibreOffice integration
     plymouth-themes/       Vendored Plymouth boot theme (nixos-mac-style)
+    power.nix              Battery/power tuning for the Parallels guest
     printing.nix           CUPS + Avahi
     security.nix           SSH, 1Password, YubiKey, GnuPG
     users.nix              User accounts, login shell, SSH authorized keys
@@ -34,9 +36,14 @@ home/                      Home Manager wiring, attached as a NixOS module
   martin/                  Per-user configuration
     default.nix
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
+    byobu.nix              Byobu backend configuration
     fish.nix               Fish shell: byobu auto-launch, fastfetch, autoloaded functions
     git.nix                Git config, incl. SSH commit signing via 1Password
     gnome.nix              GNOME settings as declarative dconf
+    mac-folders.nix        Maps the macOS host's Parallels-shared folders into $HOME
+    mounts.nix             sshfs mounts under ~/mounts (systemd user services)
+    obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
+    onepassword.nix        Autostarts 1Password at login (SSH agent provider)
     shell.nix              Starship prompt + Atuin history
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
     unison.nix             Unison sync profile
@@ -227,6 +234,47 @@ Interactive fish shells launch byobu automatically (`home/martin/fish.nix`).
 The init guards against recursion — byobu starts tmux, whose nested fish has
 `$TMUX` set and so skips the re-exec — and against having no controlling tty, so
 scp/rsync and editor-embedded shells are left alone.
+
+## Remote sshfs mounts
+
+Remote filesystems are mounted over sshfs under `~/mounts`, defined in
+`home/martin/mounts.nix`:
+
+| Unit | Remote | Mountpoint | At login? |
+| --- | --- | --- | --- |
+| `sshfs-waldorf` | `martin@waldorf:/home/martin` | `~/mounts/waldorf` | yes |
+| `sshfs-lg1` | `lg:/volume1/lg/lg` | `~/mounts/lg1` | no |
+| `sshfs-lg2` | `sh:/volume2/lg2/lg` | `~/mounts/lg2` | no |
+| `sshfs-sm_mount` | `sh:/volume1/sh` | `~/mounts/sm_mount` | no |
+| `sshfs-ia` | `backup:/volume2/interneta` | `~/mounts/ia` | no |
+
+Each mount is a systemd *user* service running sshfs as martin. The waldorf
+mount starts with the graphical session; the NAS mounts never start on their
+own and are mounted on demand, without root:
+
+```sh
+systemctl --user start sshfs-lg1    # mount
+systemctl --user stop  sshfs-lg1    # unmount
+```
+
+They are deliberately *not* fstab entries (`fileSystems` with `noauto,user`):
+a user-invoked fstab mount runs the FUSE helper — and therefore ssh — as
+root, and authentication here comes from martin's 1Password SSH agent, whose
+socket is user-owned and only serves same-user clients in the desktop
+session. Running sshfs as martin instead needs no root at any point (FUSE's
+setuid `fusermount3` wrapper does the privileged part) and picks up the agent
+naturally. The corollary is that mounting requires 1Password to be running
+and unlocked; an attempt made while it is locked fails quietly and the unit
+retries every 15 s (`BatchMode=yes` stops ssh falling back to an interactive
+password prompt). Because they are user services started after
+`graphical-session.target`, an unreachable host can never hang boot or login.
+
+The mountpoints themselves are created at every boot, owned by martin, by
+systemd-tmpfiles rules in `modules/nixos/mounts.nix`, which mirrors the mount
+list in `home/martin/mounts.nix` — keep the two in sync when adding a mount
+(drift is non-fatal: each service also `mkdir -p`'s its own mountpoint). The
+NAS hostnames resolve over Tailscale MagicDNS, so the tailnet must be up for
+those mounts to connect.
 
 ## Rebuilding
 
