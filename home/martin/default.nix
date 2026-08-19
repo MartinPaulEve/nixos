@@ -9,12 +9,12 @@
     ./git.nix
     ./gnome.nix
     ./mac-folders.nix
+    ./mounts.nix
     ./obsidian.nix
     ./onepassword.nix
     ./shell.nix
     ./sublime.nix
     ./unison.nix
-    ./waldorf.nix
     ./whipper.nix
     ./zotero.nix
   ];
