@@ -10,10 +10,14 @@
 # which FUSE permits without root via the setuid fusermount3 wrapper.
 #
 # Mounts marked autoStart mount at login; the rest never start on their own
-# and are mounted on demand, without root:
+# and are mounted on demand, without root, via the sshmount/sshumount
+# helpers generated below (plain `systemctl --user start/stop sshfs-<name>`
+# works too):
 #
-#   systemctl --user start sshfs-lg1     # mount
-#   systemctl --user stop  sshfs-lg1     # unmount
+#   sshmount lg1             # mount one (also: sshmount ~/mounts/lg1)
+#   sshmount                     # mount everything
+#   sshumount lg1            # unmount one
+#   sshumount                    # unmount everything
 #
 # Because these are user services they start asynchronously with the session
 # and can never block boot or login: if a host is unreachable the unit simply
@@ -94,9 +98,85 @@ let
     // lib.optionalAttrs (cfg.autoStart or false) {
       Install.WantedBy = [ "graphical-session.target" ];
     };
+
+  # Command-line helpers generated from the same attrset, so their mount list
+  # can never drift from the units. An argument may be a bare mount name
+  # (lg1) or any path ending in one (~/mounts/lg1); only the final
+  # path component is significant. With no arguments they act on every mount.
+  knownMounts = builtins.concatStringsSep " " (builtins.attrNames mounts);
+
+  # Turns the command's arguments into a validated `targets` array, failing
+  # fast (before anything is mounted or unmounted) on an unknown name.
+  resolveTargets = ''
+    known="${knownMounts}"
+    resolve() {
+      local arg="''${1%/}" name k
+      name="''${arg##*/}"
+      for k in $known; do
+        if [ "$k" = "$name" ]; then printf '%s\n' "$k"; return 0; fi
+      done
+      echo "''${0##*/}: unknown mount '$1' (known: $known)" >&2
+      return 1
+    }
+    targets=()
+    if [ "$#" -eq 0 ]; then
+      for k in $known; do targets+=("$k"); done
+    else
+      for arg in "$@"; do targets+=("$(resolve "$arg")"); done
+    fi
+  '';
+
+  sshmount = pkgs.writeShellScriptBin "sshmount" ''
+    set -euo pipefail
+    ${resolveTargets}
+    for name in "''${targets[@]}"; do
+      systemctl --user start "sshfs-$name"
+    done
+    # The services are Type=simple, so `start` returns before ssh has
+    # actually connected: poll briefly, then report. Anything still pending
+    # keeps retrying inside its unit.
+    for _ in $(seq 1 20); do
+      ok=1
+      for name in "''${targets[@]}"; do
+        mountpoint -q "${mountsDir}/$name" || ok=0
+      done
+      [ "$ok" -eq 1 ] && break
+      sleep 0.5
+    done
+    for name in "''${targets[@]}"; do
+      if mountpoint -q "${mountsDir}/$name"; then
+        echo "mounted ${mountsDir}/$name"
+      else
+        echo "sshfs-$name is not up yet; it will keep retrying in the" \
+             "background (is 1Password unlocked and the host reachable?)"
+      fi
+    done
+  '';
+
+  sshumount = pkgs.writeShellScriptBin "sshumount" ''
+    set -euo pipefail
+    ${resolveTargets}
+    for name in "''${targets[@]}"; do
+      mp="${mountsDir}/$name"
+      # Stopping the unit unmounts, and also halts a unit that is still in
+      # its retry loop without having mounted anything yet.
+      systemctl --user stop "sshfs-$name"
+      if mountpoint -q "$mp"; then
+        # Mounted outside the unit (e.g. sshfs run by hand): unmount directly.
+        fusermount3 -uz "$mp"
+      fi
+      if mountpoint -q "$mp"; then
+        echo "sshumount: failed to unmount $mp" >&2
+        exit 1
+      fi
+      echo "unmounted $mp"
+    done
+  '';
 in
 {
   systemd.user.services =
     lib.mapAttrs' (name: cfg: lib.nameValuePair "sshfs-${name}" (mkMount name cfg))
       mounts;
+
+  home.packages = [ sshmount sshumount ];
 }
