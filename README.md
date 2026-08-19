@@ -41,7 +41,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     git.nix                Git config, incl. SSH commit signing via 1Password
     gnome.nix              GNOME settings as declarative dconf
     mac-folders.nix        Maps the macOS host's Parallels-shared folders into $HOME
-    mounts.nix             sshfs mounts under ~/mounts (systemd user services)
+    mounts.nix             sshfs mounts under ~/mounts (systemd user services) + sshmount/sshumount helpers
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
     onepassword.nix        Autostarts 1Password at login (SSH agent provider)
     shell.nix              Starship prompt + Atuin history
@@ -250,12 +250,23 @@ Remote filesystems are mounted over sshfs under `~/mounts`, defined in
 
 Each mount is a systemd *user* service running sshfs as martin. The waldorf
 mount starts with the graphical session; the NAS mounts never start on their
-own and are mounted on demand, without root:
+own and are mounted on demand, without root, via the `sshmount`/`sshumount`
+helpers (generated in `home/martin/mounts.nix` from the same mount list, so
+they cannot drift; plain `systemctl --user start/stop sshfs-<name>` works
+too). An argument may be a bare mount name or any path ending in one:
 
 ```sh
-systemctl --user start sshfs-lg1    # mount
-systemctl --user stop  sshfs-lg1    # unmount
+sshmount lg1              # mount one
+sshmount ~/mounts/lg1     # same
+sshmount                      # mount everything
+sshumount lg1             # unmount one
+sshumount                     # unmount everything
 ```
+
+`sshmount` waits up to ten seconds for the mounts to appear and then reports
+per mount; anything not yet connected keeps retrying inside its unit.
+`sshumount` stops the unit (which also halts a still-retrying one) and falls
+back to `fusermount3 -uz` for a mount made by hand.
 
 They are deliberately *not* fstab entries (`fileSystems` with `noauto,user`):
 a user-invoked fstab mount runs the FUSE helper — and therefore ssh — as
