@@ -10,6 +10,7 @@
     ./fonts.nix
     ./keyd.nix
     ./localization.nix
+    ./mounts.nix
     ./networking.nix
     ./nix.nix
     ./packages.nix
