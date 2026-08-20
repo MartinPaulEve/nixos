@@ -42,6 +42,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     gnome.nix              GNOME settings as declarative dconf
     mac-folders.nix        Maps the macOS host's Parallels-shared folders into $HOME
     mounts.nix             sshfs mounts under ~/mounts (systemd user services) + sshmount/sshumount helpers
+    music.nix              Music tagging: beets (declarative config) + EasyTAG
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
     onepassword.nix        Autostarts 1Password at login (SSH agent provider)
     shell.nix              Starship prompt + Atuin history

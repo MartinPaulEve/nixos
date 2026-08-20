@@ -10,6 +10,7 @@
     ./gnome.nix
     ./mac-folders.nix
     ./mounts.nix
+    ./music.nix
     ./obsidian.nix
     ./onepassword.nix
     ./shell.nix
