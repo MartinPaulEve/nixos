@@ -66,10 +66,13 @@ let
   # sshfs passes unrecognised -o options through to ssh.
   sshOptions = [
     "reconnect"              # remount transparently after suspend/network drops
-    # Several ssh connections per mount, so one bulk consumer (Nautilus
-    # thumbnailing a directory of PDFs, say) cannot queue every other
-    # request behind it and make interactive `ls` hang for minutes.
-    "max_conns=4"
+    # Do NOT add max_conns here. It looks attractive (parallel connections
+    # so a bulk transfer cannot starve interactive requests) but reconnect
+    # only revives the primary connection: when the NAS drops one of the
+    # extra connections — observed live, the Synologys shed connections
+    # under load — every request already routed to it waits forever with
+    # no error, which presents as `ls` hanging on an otherwise healthy
+    # mount. One connection plus reconnect is the reliable combination.
     "ServerAliveInterval=15" # with ServerAliveCountMax, detect dead links fast
     "ServerAliveCountMax=3"
     "BatchMode=yes"          # key auth only: never prompt for a password
