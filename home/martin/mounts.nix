@@ -42,12 +42,25 @@ let
   mountsDir = "/home/martin/mounts";
 
   # Attribute name = directory under ${mountsDir} = unit name suffix.
+  #
+  # A remote is either a literal host:path or a 1Password secret reference
+  # (op://vault/item/field), resolved with `op read` when the unit starts so
+  # the real host paths never appear in this repo. The referenced items are
+  # Secure Notes in the Personal vault with a single text field `remote`
+  # holding the literal host:path; `op read` authorises through the desktop
+  # app (same GUI prompt as the SSH agent), which is fine because these
+  # mounts only start on demand from within the session.
+  #
+  # The NAS paths are share-relative, NOT absolute: DSM's SFTP service
+  # chroots each user into a virtual root containing only the DSM shared
+  # folders, so /volumeX prefixes do not exist over SFTP and only shares
+  # (not arbitrary directories or symlinks under /volumeX) are reachable.
   mounts = {
     waldorf      = { remote = "martin@waldorf:/home/martin"; autoStart = true; };
-    lg1      = { remote = "lg:/volume1/lg/lg"; };
-    lg2      = { remote = "sh:/volume2/lg2/lg"; };
-    sm_mount = { remote = "sh:/volume1/sh"; };
-    ia           = { remote = "backup:/volume2/interneta"; };
+    lg1      = { remote = "op://Personal/sshmount-lg1/remote"; };
+    lg2      = { remote = "op://Personal/sshmount-lg2/remote"; };
+    sm_mount = { remote = "op://Personal/sshmount-sm_mount/remote"; };
+    ia           = { remote = "backup:/interneta"; };
   };
 
   # sshfs passes unrecognised -o options through to ssh.
@@ -69,6 +82,19 @@ let
         fusermount3 -uz ${mountPoint} 2>/dev/null || true
         mkdir -p ${mountPoint}
       '';
+      # Resolve an op:// remote via 1Password at mount time (literal remotes
+      # pass straight through), then exec sshfs. `op` comes from
+      # /run/wrappers/bin, which the unit's PATH puts first. A failed read
+      # (1Password locked, authorisation declined) fails the unit, which
+      # then retries on the usual RestartSec cadence.
+      launch = pkgs.writeShellScript "sshfs-${name}-launch" ''
+        remote='${cfg.remote}'
+        case "$remote" in
+          op://*) remote="$(op read "$remote")" || exit 1 ;;
+        esac
+        # -f keeps sshfs in the foreground so systemd supervises it directly.
+        exec ${pkgs.sshfs}/bin/sshfs -f -o ${builtins.concatStringsSep "," sshOptions} "$remote" ${mountPoint}
+      '';
     in
     {
       Unit = {
@@ -85,8 +111,7 @@ let
         # fusermount3 wrapper, which unprivileged mounts require on NixOS.
         Environment = "PATH=/run/wrappers/bin:/run/current-system/sw/bin";
         ExecStartPre = "${preStart}";
-        # -f keeps sshfs in the foreground so systemd supervises it directly.
-        ExecStart = "${pkgs.sshfs}/bin/sshfs -f -o ${builtins.concatStringsSep "," sshOptions} ${cfg.remote} ${mountPoint}";
+        ExecStart = "${launch}";
         ExecStop = "/run/wrappers/bin/fusermount3 -uz ${mountPoint}";
         # At shutdown the system tears the network down concurrently with the
         # user session, so sshfs blocks on the dead server for the whole
