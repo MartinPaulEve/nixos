@@ -87,7 +87,14 @@ let
         ExecStartPre = "${preStart}";
         # -f keeps sshfs in the foreground so systemd supervises it directly.
         ExecStart = "${pkgs.sshfs}/bin/sshfs -f -o ${builtins.concatStringsSep "," sshOptions} ${cfg.remote} ${mountPoint}";
-        ExecStop = "fusermount3 -uz ${mountPoint}";
+        ExecStop = "/run/wrappers/bin/fusermount3 -uz ${mountPoint}";
+        # At shutdown the system tears the network down concurrently with the
+        # user session, so sshfs blocks on the dead server for the whole
+        # ServerAlive window (45s) before it notices and exits — stalling
+        # poweroff. The lazy unmount above has already detached the
+        # mountpoint by then, so there is nothing worth waiting for: kill the
+        # leftover sshfs process quickly.
+        TimeoutStopSec = "5s";
         # Retry quietly until the host is reachable and 1Password has
         # authorised the key. Spaced out enough that a locked 1Password is
         # not nagged with rapid-fire agent requests.
