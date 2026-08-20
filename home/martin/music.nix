@@ -4,16 +4,21 @@
 {
   home.packages = [ pkgs.easytag ];
 
-  # Configuration migrated verbatim from the copy that lived on waldorf at
+  # Ensures ~/.local/share/beets exists for the library database.
+  xdg.dataFile."beets/.keep".text = "";
+
+  # Configuration migrated from the copy that lived on waldorf at
   # ~/.config/beets/config.yaml, translated to Home Manager settings (which
-  # are rendered back to that same file). The library paths are relative to
-  # $HOME on whichever machine this runs on: ~/Music must exist before an
-  # import, and ~/data must exist for the database.
+  # are rendered back to that same file), with one deliberate change: the
+  # library database moves from waldorf's ad-hoc ~/data to the XDG data dir,
+  # where state belongs — outside ~/Music so nothing syncing or reorganising
+  # the music tree touches the SQLite file. Beets does not create the
+  # database's parent directory, so the .keep file below guarantees it.
   programs.beets = {
     enable = true;
     settings = {
       directory = "~/Music";
-      library = "~/data/musiclibrary.db";
+      library = "~/.local/share/beets/musiclibrary.db";
       import.move = true;
       paths = {
         default = "$albumartist/$album%aunique{} ($year)/$track $title";
