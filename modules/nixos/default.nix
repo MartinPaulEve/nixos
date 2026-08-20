@@ -17,6 +17,7 @@
     ./power.nix
     ./printing.nix
     ./security.nix
+    ./shutdown.nix
     ./users.nix
     ./virtualisation.nix
     ./vm.nix
