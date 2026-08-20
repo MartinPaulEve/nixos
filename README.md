@@ -243,10 +243,17 @@ Remote filesystems are mounted over sshfs under `~/mounts`, defined in
 | Unit | Remote | Mountpoint | At login? |
 | --- | --- | --- | --- |
 | `sshfs-waldorf` | `martin@waldorf:/home/martin` | `~/mounts/waldorf` | yes |
-| `sshfs-lg1` | `lg:/volume1/lg/lg` | `~/mounts/lg1` | no |
-| `sshfs-lg2` | `sh:/volume2/lg2/lg` | `~/mounts/lg2` | no |
-| `sshfs-sm_mount` | `sh:/volume1/sh` | `~/mounts/sm_mount` | no |
-| `sshfs-ia` | `backup:/volume2/interneta` | `~/mounts/ia` | no |
+| `sshfs-lg1` | `op://Personal/sshmount-lg1/remote` | `~/mounts/lg1` | no |
+| `sshfs-lg2` | `op://Personal/sshmount-lg2/remote` | `~/mounts/lg2` | no |
+| `sshfs-sm_mount` | `op://Personal/sshmount-sm_mount/remote` | `~/mounts/sm_mount` | no |
+| `sshfs-ia` | `backup:/interneta` | `~/mounts/ia` | no |
+
+The `op://` remotes are 1Password secret references: the unit resolves the
+real `host:path` with `op read` at mount time, so it never appears in this
+repo. Each referenced item is a Secure Note in the Personal vault with one
+text field, `remote`. The NAS paths (including `ia`'s) are relative to the
+Synology SFTP chroot, which exposes DSM shared folders at `/` rather than
+the real filesystem — `/volumeX` paths do not exist over SFTP.
 
 Each mount is a systemd *user* service running sshfs as martin. The waldorf
 mount starts with the graphical session; the NAS mounts never start on their
