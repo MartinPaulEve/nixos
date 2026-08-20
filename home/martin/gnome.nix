@@ -226,6 +226,14 @@ with lib.hm.gvariant;
 
     "org/gnome/nautilus/preferences" = {
       migrated-gtk-settings = true;
+      # Keep Nautilus's per-file work (thumbnailing, item counts,
+      # type-ahead recursive search) off network filesystems. These are
+      # the upstream defaults, pinned here so they cannot drift: GLib
+      # classifies fuse.sshfs as remote, so 'local-only' exempts the
+      # sshfs mounts under ~/mounts while leaving local files alone.
+      show-image-thumbnails = "local-only";
+      show-directory-item-counts = "local-only";
+      recursive-search = "local-only";
     };
 
     "org/gnome/nautilus/window-state" = {
