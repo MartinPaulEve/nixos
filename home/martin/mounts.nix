@@ -66,6 +66,10 @@ let
   # sshfs passes unrecognised -o options through to ssh.
   sshOptions = [
     "reconnect"              # remount transparently after suspend/network drops
+    # Several ssh connections per mount, so one bulk consumer (Nautilus
+    # thumbnailing a directory of PDFs, say) cannot queue every other
+    # request behind it and make interactive `ls` hang for minutes.
+    "max_conns=4"
     "ServerAliveInterval=15" # with ServerAliveCountMax, detect dead links fast
     "ServerAliveCountMax=3"
     "BatchMode=yes"          # key auth only: never prompt for a password
