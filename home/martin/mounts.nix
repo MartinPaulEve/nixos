@@ -44,12 +44,16 @@ let
   # Attribute name = directory under ${mountsDir} = unit name suffix.
   #
   # A remote is either a literal host:path or a 1Password secret reference
-  # (op://vault/item/field), resolved with `op read` when the unit starts so
-  # the real host paths never appear in this repo. The referenced items are
-  # Secure Notes in the Personal vault with a single text field `remote`
-  # holding the literal host:path; `op read` authorises through the desktop
-  # app (same GUI prompt as the SSH agent), which is fine because these
-  # mounts only start on demand from within the session.
+  # (op://vault/item/field), so the real host paths never appear in this
+  # repo. The referenced items are Secure Notes in the Personal vault with a
+  # single text field `remote` holding the literal host:path.
+  #
+  # Every op:// reference is resolved in ONE `op inject` run (a single
+  # 1Password authorisation prompt, via sshmount below) into a cache file in
+  # XDG_RUNTIME_DIR — tmpfs, mode 0600, wiped at logout — so later mounts in
+  # the same session prompt not at all. A unit started directly with
+  # systemctl (bypassing sshmount) falls back to its own `op read`, which
+  # costs one prompt for just that mount.
   #
   # The NAS paths are share-relative, NOT absolute: DSM's SFTP service
   # chroots each user into a virtual root containing only the DSM shared
@@ -62,6 +66,29 @@ let
     sm_mount = { remote = "op://Personal/sshmount-sm_mount/remote"; };
     ia           = { remote = "backup:/interneta"; };
   };
+
+  # The 1Password-referenced mounts, the env-var key each resolves into
+  # inside the session cache, and the one-shot resolver. The cache is only
+  # ever written by `op inject` output (KEY='host:path' lines), so sourcing
+  # it is safe.
+  opMounts = lib.filterAttrs (_: cfg: lib.hasPrefix "op://" cfg.remote) mounts;
+  envKey = name: "SSHFS_REMOTE_${lib.toUpper name}";
+  cacheLine = ''cache="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sshfs-remotes.env"'';
+
+  resolveRemotes = pkgs.writeShellScript "sshfs-resolve-remotes" ''
+    set -euo pipefail
+    ${cacheLine}
+    complete=1
+    for key in ${lib.concatStringsSep " " (map envKey (builtins.attrNames opMounts))}; do
+      grep -q "^$key=" "$cache" 2>/dev/null || complete=0
+    done
+    [ "$complete" -eq 1 ] && exit 0
+    umask 077
+    op inject > "$cache.tmp" <<'EOF'
+${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: cfg: "${envKey n}='{{ ${cfg.remote} }}'") opMounts)}
+EOF
+    mv "$cache.tmp" "$cache"
+  '';
 
   # sshfs passes unrecognised -o options through to ssh.
   sshOptions = [
@@ -89,15 +116,28 @@ let
         fusermount3 -uz ${mountPoint} 2>/dev/null || true
         mkdir -p ${mountPoint}
       '';
-      # Resolve an op:// remote via 1Password at mount time (literal remotes
-      # pass straight through), then exec sshfs. `op` comes from
-      # /run/wrappers/bin, which the unit's PATH puts first. A failed read
-      # (1Password locked, authorisation declined) fails the unit, which
-      # then retries on the usual RestartSec cadence.
+      # Resolve an op:// remote (literal remotes pass straight through),
+      # then exec sshfs. The session cache written by sshmount's one-shot
+      # `op inject` is preferred; without it, fall back to a per-unit
+      # `op read` (one 1Password prompt). `op` comes from /run/wrappers/bin,
+      # which the unit's PATH puts first. A failed read (1Password locked,
+      # authorisation declined) fails the unit, which then retries on the
+      # usual RestartSec cadence.
       launch = pkgs.writeShellScript "sshfs-${name}-launch" ''
         remote='${cfg.remote}'
         case "$remote" in
-          op://*) remote="$(op read "$remote")" || exit 1 ;;
+          op://*)
+            ${cacheLine}
+            resolved=""
+            if [ -r "$cache" ]; then
+              . "$cache"
+              resolved="''${${envKey name}:-}"
+            fi
+            if [ -z "$resolved" ]; then
+              resolved="$(op read "$remote")" || exit 1
+            fi
+            remote="$resolved"
+            ;;
         esac
         # -f keeps sshfs in the foreground so systemd supervises it directly.
         exec ${pkgs.sshfs}/bin/sshfs -f -o ${builtins.concatStringsSep "," sshOptions} "$remote" ${mountPoint}
@@ -168,6 +208,14 @@ let
   sshmount = pkgs.writeShellScriptBin "sshmount" ''
     set -euo pipefail
     ${resolveTargets}
+    # Resolve every 1Password-referenced remote in one go (single
+    # authorisation prompt) before starting units; a no-op when the session
+    # cache is already complete or no requested mount needs it.
+    for name in "''${targets[@]}"; do
+      for o in ${builtins.concatStringsSep " " (builtins.attrNames opMounts)}; do
+        if [ "$name" = "$o" ]; then ${resolveRemotes}; break 2; fi
+      done
+    done
     for name in "''${targets[@]}"; do
       systemctl --user start "sshfs-$name"
     done
