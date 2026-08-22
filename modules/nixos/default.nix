@@ -18,6 +18,7 @@
     ./printing.nix
     ./security.nix
     ./shutdown.nix
+    ./transcribe-client.nix
     ./users.nix
     ./virtualisation.nix
     ./vm.nix
