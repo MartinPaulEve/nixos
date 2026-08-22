@@ -241,6 +241,7 @@ in
     telegram-desktop         # Telegram messenger
 
     # --- System & disk utilities ---
+    libnotify                # Desktop notifications from the CLI (notify-send)
     file-roller              # Zip file handler
     gparted                  # Partition editor
     safeeyes                 # Break reminder to reduce eye strain
