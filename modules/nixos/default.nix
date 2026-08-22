@@ -7,6 +7,7 @@
     ./boot.nix
     ./desktop.nix
     ./email.nix
+    ./espanso.nix
     ./fonts.nix
     ./keyd.nix
     ./localization.nix
