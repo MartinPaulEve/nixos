@@ -17,6 +17,7 @@ modules/
     boot.nix               Bootloader, kernel, LUKS, Plymouth splash
     desktop.nix            X11, GNOME, GNOME Tweaks, Firefox
     email.nix              Thunderbird + Proton Mail bridge (headless service)
+    espanso.nix            uinput access for espanso's Wayland EVDEV injection
     fonts.nix              System fonts, incl. Nerd Fonts
     keyd.nix               System-wide key remapping (evdev, Wayland-safe)
     localization.nix       Time zone, locale, console keymap
@@ -28,6 +29,8 @@ modules/
     power.nix              Battery/power tuning for the Parallels guest
     printing.nix           CUPS + Avahi
     security.nix           SSH, 1Password, YubiKey, GnuPG
+    shutdown.nix           Shutdown latency fixes (caps user-service stop timeouts)
+    transcribe-client.nix  Runtime deps for the mpe-transcribe voice client
     users.nix              User accounts, login shell, SSH authorized keys
     virtualisation.nix     Docker
     vm.nix                 QEMU/SPICE test-VM variant (build-vm only; never affects the real system)
@@ -51,6 +54,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     whipper.nix            Whipper CD ripper package + config
     zotero.nix             Registers the Zotero LibreOffice extension (per-user)
     functions/             Fish functions, linked into ~/.config/fish/functions
+    gnome/                 GNOME assets (monitors.xml display layout)
     unison/                Unison profile source
     whipper/               Whipper config source
 scripts/                   Environment-management commands (on PATH; see scripts/README.md)
@@ -81,7 +85,7 @@ function:
 | Office & research | libreoffice-fresh, zotero, pdftk |
 | Graphics & media | gimp-with-plugins, vlc, ymuse, yt-dlp |
 | Communication | signal-desktop, telegram-desktop |
-| System & disk utilities | file-roller, gparted, safeeyes, remmina |
+| System & disk utilities | libnotify, xclip, file-roller, gparted, safeeyes, remmina |
 | Miscellaneous | herdr, worksummary |
 
 Sublime Text is pulled from a dedicated `pkgs` instance that permits the
@@ -191,6 +195,26 @@ the X11-only AutoKey). The `gb(mac)` layout already carries `£` and `#` on the
 `3` key (at Shift and AltGr respectively), so keyd remaps the familiar chords
 onto those native combinations rather than synthesising Unicode: `Ctrl+Shift+3`
 emits `Shift+3` (`£`) and `Ctrl+4` emits `AltGr+3` (`#`).
+
+`modules/nixos/transcribe-client.nix` carries the runtime dependencies for the
+mpe-transcribe voice-transcription client: `wl-clipboard` (Wayland clipboard
+get/set), `programs.ydotool.enable` (the `ydotoold` daemon that synthesises the
+Ctrl+V paste), and membership of the `input` and `ydotool` groups so the evdev
+hotkey listener can read `/dev/input/event*` and reach the ydotoold socket. The
+app itself is not managed by this repo — it runs from a local clone in
+`~/src/mpe-transcribe`, with recording and transcription happening on the Mac
+host over encrypted UDP. Group changes only apply to fresh sessions, so a
+re-login is needed after first activation. For X11/XWayland apps the clipboard
+CLI is `xclip` (in `packages.nix`); Wayland-native use goes through
+`wl-copy`/`wl-paste`.
+
+`modules/nixos/espanso.nix` grants the device access espanso's Wayland EVDEV
+backend needs: reading keyboards comes from the `input` group above, and
+injection requires opening `/dev/uinput`, enabled via `hardware.uinput` plus
+the `uinput` group. Without the uinput half espanso crash-loops, briefly
+flashing its layout-detection window at every restart. The espanso app and
+config themselves are still imperative (stowed dotfiles and a hand-registered
+systemd user unit), pending the Home Manager migration.
 
 [worksummary](https://github.com/MartinPaulEve/worksummary) is a self-authored
 CLI for logging daily work items. It is consumed as a flake input (built from a
