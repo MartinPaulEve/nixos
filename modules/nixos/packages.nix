@@ -242,6 +242,8 @@ in
 
     # --- System & disk utilities ---
     libnotify                # Desktop notifications from the CLI (notify-send)
+    xclip                    # X11 clipboard CLI (X apps/XWayland; Wayland side is
+                             # wl-clipboard, from transcribe-client.nix)
     file-roller              # Zip file handler
     gparted                  # Partition editor
     safeeyes                 # Break reminder to reduce eye strain
