@@ -125,6 +125,7 @@ in
     wget                     # HTTP(S) file downloader
     curl                     # Multi-protocol data-transfer tool
     nano                     # Lightweight terminal text editor
+    jq                       # Command-line JSON processor
     net-tools                # Legacy net utilities (ifconfig, netstat, …)
     expect                   # Scripts interactive command-line programs
 
