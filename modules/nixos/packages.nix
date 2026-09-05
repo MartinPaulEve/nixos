@@ -184,6 +184,7 @@ in
     libtool
     m4
     patch
+    tcpdump
     # docker CLI is provided by virtualisation.docker (see virtualisation.nix)
 
     # --- Web browsers & automation ---
