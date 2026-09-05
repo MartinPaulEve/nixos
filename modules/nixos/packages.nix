@@ -114,6 +114,54 @@ let
       mainProgram = "sequoia";
     };
   };
+
+  # holos: Electron desktop client for holos.social. Not in nixpkgs — the
+  # nixpkgs `holos` attribute is the unrelated holos.run platform CLI. Upstream
+  # ships binaries only (https://holos.social/download), with separate builds
+  # per architecture: the plain AppImage is x64 (for the bare-metal amd64
+  # host), the -arm64 one covers the aarch64 VM. wrapType2 runs the AppImage's
+  # payload in an FHS env; the desktop entry and icon are copied out of the
+  # image so GNOME can launch and pin it. Refresh on bump: update version and
+  # BOTH hashes (`nix store prefetch-file <url>`).
+  holos =
+    let
+      pname = "holos";
+      version = "1.15.0";
+      src =
+        if pkgs.stdenv.hostPlatform.isx86_64
+        then
+          pkgs.fetchurl
+            {
+              url = "https://files.fedilab.app/holos-desktop/Holos-${version}.AppImage";
+              hash = "sha256-Z0WEQHOsnAI3TporuM7ADsA6x68nNNnbPW2grLmDVkA=";
+            }
+        else
+          pkgs.fetchurl {
+            url = "https://files.fedilab.app/holos-desktop/Holos-${version}-arm64.AppImage";
+            hash = "sha256-BVjOviokCTuEUcaEX1Ib2Uu11XOMMIZYxcGnXXKsBl8=";
+          };
+      appimageContents = pkgs.appimageTools.extract { inherit pname version src; };
+    in
+    pkgs.appimageTools.wrapType2 {
+      inherit pname version src;
+      # Keep upstream's Exec flags (--no-sandbox %U) but point it at the
+      # wrapper binary instead of the AppImage-internal AppRun.
+      extraInstallCommands = ''
+        install -Dm444 ${appimageContents}/holos.desktop \
+          "$out/share/applications/holos.desktop"
+        substituteInPlace "$out/share/applications/holos.desktop" \
+          --replace-fail 'Exec=AppRun' 'Exec=holos'
+        install -Dm444 \
+          ${appimageContents}/usr/share/icons/hicolor/1024x1024/apps/holos.png \
+          "$out/share/icons/hicolor/1024x1024/apps/holos.png"
+      '';
+      meta = {
+        description = "Desktop client for holos.social";
+        homepage = "https://holos.social";
+        mainProgram = "holos";
+        platforms = [ "x86_64-linux" "aarch64-linux" ];
+      };
+    };
 in
 {
   environment.systemPackages = with pkgs; [
@@ -242,6 +290,7 @@ in
     # Proton Mail bridge + Thunderbird are configured in email.nix.
     signal-desktop           # Signal messenger
     telegram-desktop         # Telegram messenger
+    holos                    # holos.social desktop client (AppImage wrap, built above)
 
     # --- System & disk utilities ---
     libnotify                # Desktop notifications from the CLI (notify-send)
