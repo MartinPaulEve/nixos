@@ -50,11 +50,14 @@ home/                      Home Manager wiring, attached as a NixOS module
     onepassword.nix        Autostarts 1Password at login (SSH agent provider)
     shell.nix              Starship prompt + Atuin history
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
+    transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
     zotero.nix             Registers the Zotero LibreOffice extension (per-user)
     functions/             Fish functions, linked into ~/.config/fish/functions
     gnome/                 GNOME assets (monitors.xml display layout)
+    sublime/               Sublime User files (Jekyll front-matter override plugin)
+    transcribe/            transcribe.toml for the voice-transcription client
     unison/                Unison profile source
     whipper/               Whipper config source
 scripts/                   Environment-management commands (on PATH; see scripts/README.md)
@@ -73,18 +76,18 @@ function:
 | Category | Packages |
 | --- | --- |
 | Userspace filesystem mounts | sshfs, fuse |
-| Core CLI utilities | wget, curl, nano, net-tools, expect |
+| Core CLI utilities | wget, curl, nano, jq, net-tools, expect |
 | Terminal / shell | eza, btop, zellij, fastfetch, byobu, tmux |
 | File sync & dotfiles | rsync, unison, stow |
 | Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text, Obsidian |
 | Development tooling | jdk, uv, bundler, php, composer, subversion, jekyll, imagemagick, exiftool, commonmeta, sequoia-cli, commitizen, github-cli, claude-code, codex |
-| Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, mariadb (+ connector headers) |
+| Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, libmysqlclient, mariadb (+ connector headers), postgresql |
 | Web browsers & automation | chromium, tor-browser, puppeteer-cli, chromedriver |
-| Networking & VPN | tailscale, tailscale-systray, openvpn3 |
-| Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
+| Networking & VPN | tailscale, tailscale-systray, openvpn3, tcpdump |
+| Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization, gpa |
 | Office & research | libreoffice-fresh, zotero, pdftk |
 | Graphics & media | gimp-with-plugins, vlc, ymuse, yt-dlp |
-| Communication | signal-desktop, telegram-desktop |
+| Communication | signal-desktop, telegram-desktop, holos |
 | System & disk utilities | libnotify, xclip, file-roller, gparted, safeeyes, remmina |
 | Miscellaneous | herdr, worksummary |
 
@@ -92,6 +95,14 @@ Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
+
+`gpa` (the GNU Privacy Assistant) is only the graphical front-end for OpenPGP;
+the stack behind it is assembled elsewhere and needs no further entries in
+`packages.nix`. `programs.gnupg.agent` in `modules/nixos/security.nix` installs
+GnuPG itself and runs `gpg-agent`, which doubles as the SSH agent; GNOME's
+desktop module supplies `pinentry-gnome3` for passphrase prompts; and `pcscd`
+(also `security.nix`) provides the smartcard access used for OpenPGP keys on a
+YubiKey.
 
 Sublime Text plugins are pinned declaratively in `home/martin/sublime.nix`
 rather than installed at runtime through Package Control: each plugin's release
@@ -101,6 +112,14 @@ automatically. This installs the Jekyll plugin (pointed at the blog's
 with automatic folding of inline link URLs). Because the settings files are
 store symlinks, adjust plugin options in the Nix module and rebuild — not
 through Sublime's own settings UI.
+
+The Jekyll plugin's new-post/new-draft front matter is customised by
+`home/martin/sublime/jekyll_eve_frontmatter.py`, installed into
+`Packages/User/` (which Sublime loads last, so its re-registered commands
+replace the stock ones without touching the plugin itself). New posts get a
+quoted title, today's date, a DOI minted at creation time via `commonmeta
+encode`, and the eve.gd image placeholder block. The README installed
+alongside it documents the details.
 
 `commonmeta` (a scholarly-metadata format converter) is not packaged in
 nixpkgs, so `packages.nix` builds it from its pinned upstream release with
@@ -113,6 +132,15 @@ nixpkgs. It is distributed only on npm, but the published tarball is a single
 self-contained `bun build` bundle, so `packages.nix` just fetches it by hash and
 wraps it with node — no npm install step. On a version bump, update the version
 and hash (`nix store prefetch-file <tarball-url>`).
+
+`holos` (the desktop client for holos.social) is also not in nixpkgs — the
+nixpkgs attribute of that name is the unrelated holos.run platform CLI.
+Upstream ships prebuilt binaries only, with separate builds per architecture,
+so `packages.nix` fetches the matching official AppImage (x64 on the
+bare-metal amd64 host, arm64 on the aarch64 VM) and wraps it with
+`appimageTools.wrapType2`, copying the desktop entry and icon out of the image
+so GNOME can launch it. On a version bump, update the version and both hashes
+(`nix store prefetch-file <url>`).
 
 `programs.nix-ld.enable` is set in `packages.nix` so prebuilt, non-Nix ELF
 binaries can find a dynamic loader at the FHS `/lib64/ld-linux` path NixOS
@@ -200,13 +228,25 @@ emits `Shift+3` (`£`) and `Ctrl+4` emits `AltGr+3` (`#`).
 mpe-transcribe voice-transcription client: `wl-clipboard` (Wayland clipboard
 get/set), `programs.ydotool.enable` (the `ydotoold` daemon that synthesises the
 Ctrl+V paste), and membership of the `input` and `ydotool` groups so the evdev
-hotkey listener can read `/dev/input/event*` and reach the ydotoold socket. The
-app itself is not managed by this repo — it runs from a local clone in
-`~/src/mpe-transcribe`, with recording and transcription happening on the Mac
-host over encrypted UDP. Group changes only apply to fresh sessions, so a
-re-login is needed after first activation. For X11/XWayland apps the clipboard
-CLI is `xclip` (in `packages.nix`); Wayland-native use goes through
-`wl-copy`/`wl-paste`.
+hotkey listener can read `/dev/input/event*` and reach the ydotoold socket.
+Recording and transcription happen on the Mac host over encrypted UDP. Group
+changes only apply to fresh sessions, so a re-login is needed after first
+activation. For X11/XWayland apps the clipboard CLI is `xclip` (in
+`packages.nix`); Wayland-native use goes through `wl-copy`/`wl-paste`.
+
+The client itself is autostarted by `home/martin/transcribe-client.nix` as a
+systemd user service tied to the graphical session, gated (like
+`mac-folders.nix`) to the aarch64 Parallels guest. On first start it clones
+the app from the Parallels share into `~/.local/share/mpe-transcribe` — its
+own clone, because the share's `.venv` can only serve one OS and this VM's
+config differs from the Mac's — and `uv run` builds the venv from there
+(update later with `git -C ~/.local/share/mpe-transcribe pull`). The client
+config, `home/martin/transcribe/transcribe.toml` (client mode, the Mac's
+address, hotkey, corrections), is linked into the clone root where the app
+looks for it; the pre-shared key stays out of the repo in
+`~/.config/transcribe/psk`, referenced from the toml by path. The checkout in
+`~/src/mpe-transcribe` remains a scratch clone for interactive use and is not
+managed here.
 
 `modules/nixos/espanso.nix` grants the device access espanso's Wayland EVDEV
 backend needs: reading keyboards comes from the `input` group above, and
