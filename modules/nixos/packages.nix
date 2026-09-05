@@ -172,6 +172,7 @@ in
     mariadb                  # MariaDB
     mariadb-connector-c      # MariaDB C files
     mariadb-connector-c.dev  # MariaDB C headers
+    postgresql               # Postgres
     stdenv.cc                # Native C/C++ compiler and linker
     gnumake                  # Build toolchain
     binutils
