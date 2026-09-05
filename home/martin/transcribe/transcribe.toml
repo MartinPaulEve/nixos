@@ -1,0 +1,36 @@
+# Config for this machine (NixOS VM client). Managed by Home Manager
+# (home/martin/transcribe-client.nix): deployed as a read-only symlink
+# into the service's clone at ~/.local/share/mpe-transcribe, so edit
+# this copy and rebuild. See transcribe.toml.example in the app repo
+# for all options.
+#
+# NOTE: top-level keys (paste_method, model, hotkey) MUST appear
+# above the first [section] header — in TOML, keys written after a
+# header belong to that section.
+
+# "ctrl+v" (default) or "type" — see transcribe.toml.example.
+paste_method = "ctrl+v"
+
+hotkey = "ctrl+shift+;"
+
+[notifications]
+visual = true   # desktop notifications (notify-send)
+sound = true    # the ding
+
+[network]
+mode = "client"
+server_host = "10.211.55.2"          # the Mac, via Parallels shared networking
+client_label = "nixos-vm"
+key_file = "/home/martin/.config/transcribe/psk"
+
+# Voice recognition corrections — exact replacements
+# (case-insensitive): key = what the transcriber produces,
+# value = what you meant.
+[replacements]
+comet = "commit"
+"martin poll eve" = "Martin Paul Eve"
+
+# Fuzzy-matched terms — corrected via similarity matching.
+[custom_terms]
+terms = ["Martin Paul Eve", "Birkbeck"]
+threshold = 0.8

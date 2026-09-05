@@ -15,6 +15,7 @@
     ./onepassword.nix
     ./shell.nix
     ./sublime.nix
+    ./transcribe-client.nix
     ./unison.nix
     ./whipper.nix
     ./zotero.nix
