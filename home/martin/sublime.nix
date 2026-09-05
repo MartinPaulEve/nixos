@@ -15,7 +15,7 @@
 
 let
   # Jekyll blog checkout; the plugin creates posts/drafts/templates under here.
-  blog = "/home/martin/Documents/Programming/blog";
+  blog = "/home/martin/Programming/blog";
 
   # Fetch a Sublime package's release tarball (pinned by its flat archive hash)
   # and unpack it, stripping the archive's top-level directory, into a plain
