@@ -5,3 +5,6 @@ result-*
 
 # Disk image created by the run-*-vm script (see modules/nixos/vm.nix).
 *.qcow2
+
+# Python bytecode caches (from running the Sublime plugin tests).
+__pycache__/

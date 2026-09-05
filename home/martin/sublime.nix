@@ -64,5 +64,26 @@ in
       # New posts/drafts get a .md extension rather than the plugin's default .markdown.
       jekyll_markdown_extension = "md";
     };
+
+    # eve.gd front-matter override for the Jekyll plugin: Packages/User loads
+    # after Packages/Jekyll, so re-registering the new-post/new-draft commands
+    # here replaces the stock ones. New posts get a quoted title, today's
+    # date, a DOI minted via `commonmeta encode` (from the system profile),
+    # and the image placeholder block. Details in the README installed
+    # alongside it.
+    "sublime-text/Packages/User/jekyll_eve_frontmatter.py".source =
+      ./sublime/jekyll_eve_frontmatter.py;
+    "sublime-text/Packages/User/README-jekyll-eve-frontmatter.md".source =
+      ./sublime/README-jekyll-eve-frontmatter.md;
+
+    # Command-palette entry for the category picker on an existing post
+    # (new posts/drafts run the picker automatically after the title prompt).
+    "sublime-text/Packages/User/JekyllEve.sublime-commands".text =
+      builtins.toJSON [
+        {
+          caption = "Jekyll: Set Post Categories";
+          command = "jekyll_eve_categories";
+        }
+      ];
   };
 }
