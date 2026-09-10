@@ -84,9 +84,9 @@ function:
 | Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, libmysqlclient, mariadb (+ connector headers), postgresql |
 | Web browsers & automation | chromium, tor-browser, puppeteer-cli, chromedriver |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3, tcpdump |
-| Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization, gpa |
+| Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
 | Office & research | libreoffice-fresh, zotero, pdftk |
-| Graphics & media | gimp-with-plugins, vlc, ymuse, yt-dlp |
+| Graphics & media | audacity, gimp-with-plugins, vlc, ymuse, yt-dlp |
 | Communication | signal-desktop, telegram-desktop, holos |
 | System & disk utilities | libnotify, xclip, file-roller, gparted, safeeyes, remmina |
 | Miscellaneous | herdr, worksummary |
@@ -96,13 +96,13 @@ insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
 `virtualisation.nix`. After activation, the Zotero LibreOffice integration
 extension is registered automatically.
 
-`gpa` (the GNU Privacy Assistant) is only the graphical front-end for OpenPGP;
-the stack behind it is assembled elsewhere and needs no further entries in
-`packages.nix`. `programs.gnupg.agent` in `modules/nixos/security.nix` installs
+No OpenPGP packages appear in the list because the stack is assembled
+elsewhere: `programs.gnupg.agent` in `modules/nixos/security.nix` installs
 GnuPG itself and runs `gpg-agent`, which doubles as the SSH agent; GNOME's
 desktop module supplies `pinentry-gnome3` for passphrase prompts; and `pcscd`
 (also `security.nix`) provides the smartcard access used for OpenPGP keys on a
-YubiKey.
+YubiKey. (`gpa` was tried as a graphical front-end and removed again — it
+crashes at startup on this system.)
 
 Sublime Text plugins are pinned declaratively in `home/martin/sublime.nix`
 rather than installed at runtime through Package Control: each plugin's release
