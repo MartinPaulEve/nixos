@@ -274,12 +274,11 @@ in
     _1password-cli           # 1Password CLI (`op`)
     yubikey-manager          # YubiKey configuration tool (ykman)
     yubikey-personalization  # YubiKey personalization utilities
-    gpa                      # GNU Privacy Assistant — GTK front-end for GnuPG.
-                             # The rest of the OpenPGP stack needs no entry here:
-                             # programs.gnupg.agent (security.nix) installs gnupg
-                             # itself and runs gpg-agent, GNOME supplies
-                             # pinentry-gnome3, and pcscd (security.nix) covers
-                             # smartcard/YubiKey OpenPGP.
+    # NOTE: no OpenPGP entries are needed here — programs.gnupg.agent
+    # (security.nix) installs gnupg itself and runs gpg-agent, GNOME supplies
+    # pinentry-gnome3, and pcscd (security.nix) covers smartcard/YubiKey
+    # OpenPGP. gpa was tried as a GUI front-end and removed: it crashes at
+    # startup on this system.
 
     # --- Office & research ---
     libreoffice-fresh        # Office suite
