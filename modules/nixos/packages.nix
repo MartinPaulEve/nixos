@@ -286,6 +286,7 @@ in
     pdftk                    # PDF manipulation toolkit
 
     # --- Graphics & media ---
+    audacity                 # Audio editor
     gimp-with-plugins        # Image editor with plugins
     vlc                      # Media player
     ymuse                    # GTK client for the Music Player Daemon (MPD)
