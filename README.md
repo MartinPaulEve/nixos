@@ -76,7 +76,7 @@ function:
 | Category | Packages |
 | --- | --- |
 | Userspace filesystem mounts | sshfs, fuse |
-| Core CLI utilities | wget, curl, nano, jq, net-tools, expect |
+| Core CLI utilities | wget, curl, nano, jq, net-tools, expect, libargon2 |
 | Terminal / shell | eza, btop, zellij, fastfetch, byobu, tmux |
 | File sync & dotfiles | rsync, unison, stow |
 | Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text, Obsidian |
@@ -84,17 +84,32 @@ function:
 | Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, libmysqlclient, mariadb (+ connector headers), postgresql |
 | Web browsers & automation | chromium, tor-browser, puppeteer-cli, chromedriver |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3, tcpdump |
-| Security & authentication | 1Password (GUI + CLI), yubikey-manager, yubikey-personalization |
+| Security & authentication | 1Password (GUI + CLI), Bitwarden (GUI + CLI), yubikey-manager, yubikey-personalization |
 | Office & research | libreoffice-fresh, zotero, pdftk |
-| Graphics & media | audacity, gimp-with-plugins, vlc, ymuse, yt-dlp |
+| Graphics & media | audacity, gimp-with-plugins, rhythmbox, vlc, ymuse, yt-dlp |
 | Communication | signal-desktop, telegram-desktop, holos |
 | System & disk utilities | libnotify, xclip, file-roller, gparted, safeeyes, remmina |
 | Miscellaneous | herdr, worksummary |
 
-Sublime Text is pulled from a dedicated `pkgs` instance that permits the
-insecure OpenSSL 1.1 it depends on. The Docker CLI is provided separately by
-`virtualisation.nix`. After activation, the Zotero LibreOffice integration
-extension is registered automatically.
+Sublime Text and the Bitwarden desktop app are pulled from a dedicated `pkgs`
+instance that permits the insecure packages they depend on (OpenSSL 1.1 and an
+end-of-life Electron respectively), scoped so the exceptions never apply to
+the rest of the system; on a nixpkgs bump, check whether `bitwarden-desktop`
+has moved to a supported Electron and drop its entry. Hydra does not build
+insecure-marked packages, so `bitwarden-desktop` is compiled locally on first
+rebuild (its Electron is the repackaged official binary, so this is the app
+build only, not a Chromium build). The Docker CLI is
+provided separately by `virtualisation.nix`. After activation, the Zotero
+LibreOffice integration extension is registered automatically.
+
+Rhythmbox's plugin set is pinned declaratively (dconf, in
+`home/martin/gnome.nix`) rather than left to the app: Rhythmbox normally
+enables its default plugins only on "first sight" of each one, which is
+fragile once per-user state exists. The pinned set is the stock defaults plus
+the point of the exercise, `audioscrobbler` — the Last.fm/Libre.fm scrobbling
+plugin — so Last.fm support is always available under Preferences → Plugins.
+The Last.fm account login itself is interactive (the plugin's preferences
+pane) and its session key is per-user state outside this repo.
 
 No OpenPGP packages appear in the list because the stack is assembled
 elsewhere: `programs.gnupg.agent` in `modules/nixos/security.nix` installs
