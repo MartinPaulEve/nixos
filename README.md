@@ -39,15 +39,16 @@ home/                      Home Manager wiring, attached as a NixOS module
   martin/                  Per-user configuration
     default.nix
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
+    bitwarden.nix          Autostarts Bitwarden at login (SSH agent for commit signing)
     byobu.nix              Byobu backend configuration
     fish.nix               Fish shell: byobu auto-launch, fastfetch, autoloaded functions
-    git.nix                Git config, incl. SSH commit signing via 1Password
+    git.nix                Git config, incl. SSH commit signing via the Bitwarden SSH agent
     gnome.nix              GNOME settings as declarative dconf
     mac-folders.nix        Maps the macOS host's Parallels-shared folders into $HOME
     mounts.nix             sshfs mounts under ~/mounts (systemd user services) + sshmount/sshumount helpers
     music.nix              Music tagging: beets (declarative config) + EasyTAG
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
-    onepassword.nix        Autostarts 1Password at login (SSH agent provider)
+    onepassword.nix        Autostarts 1Password at login (sshfs mounts: op-read secrets + SSH agent)
     shell.nix              Starship prompt + Atuin history
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
     transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
