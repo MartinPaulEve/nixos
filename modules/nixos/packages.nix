@@ -176,6 +176,7 @@ in
     jq                       # Command-line JSON processor
     net-tools                # Legacy net utilities (ifconfig, netstat, …)
     expect                   # Scripts interactive command-line programs
+    libargon2                # Argon2 password hashing (CLI + library)
 
     # --- Terminal / shell enhancements ---
     eza                      # Modern `ls` replacement
