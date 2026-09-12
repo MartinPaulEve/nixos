@@ -240,6 +240,27 @@ with lib.hm.gvariant;
       initial-size = mkTuple [ 890 550 ];
     };
 
+    # Rhythmbox plugins. The one that matters is audioscrobbler — the
+    # Last.fm/Libre.fm scrobbling plugin; the rest reproduce the stock
+    # first-run set, because Rhythmbox only auto-enables plugins it has never
+    # seen before (seen-plugins), so relying on that is fragile once any
+    # per-user state exists. Pinning the key keeps the set stable across
+    # rebuilds. Builtin plugins (mpris, audiocd, generic-player, iradio,
+    # android, power-manager) load unconditionally and don't belong here.
+    # Logging in to Last.fm remains interactive per-user state (plugin
+    # preferences → Log in; the session key lands outside this repo).
+    "org/gnome/rhythmbox/plugins" = {
+      active-plugins = [
+        "artsearch"
+        "audioscrobbler"
+        "cd-recorder"
+        "dbus-media-server"
+        "ipod"
+        "mtpdevice"
+        "notification"
+      ];
+    };
+
     "org/gnome/settings-daemon/plugins/color" = {
       night-light-schedule-automatic = false;
     };
