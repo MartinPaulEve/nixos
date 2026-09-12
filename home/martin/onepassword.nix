@@ -6,6 +6,10 @@
 # NixOS, so we manage it declaratively. Started with --silent so only the
 # tray icon appears, keeping the SSH agent socket at ~/.1password/agent.sock
 # available for anything that needs it (e.g. the waldorf sshfs mount).
+#
+# Git commit signing has moved to Bitwarden (bitwarden.nix / git.nix);
+# 1Password stays autostarted because the sshfs mounts (mounts.nix) still
+# resolve their remotes with `op read` and authenticate against its agent.
 { ... }:
 
 {
