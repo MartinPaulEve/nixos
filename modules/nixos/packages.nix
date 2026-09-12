@@ -289,6 +289,7 @@ in
     # --- Graphics & media ---
     audacity                 # Audio editor
     gimp-with-plugins        # Image editor with plugins
+    rhythmbox                # GNOME music player
     vlc                      # Media player
     ymuse                    # GTK client for the Music Player Daemon (MPD)
     yt-dlp                   # CLI media downloader
