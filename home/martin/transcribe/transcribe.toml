@@ -11,10 +11,10 @@
 # "ctrl+v" (default) or "type" — see transcribe.toml.example.
 paste_method = "ctrl+v"
 
-hotkey = "ctrl+shift+;"
+hotkey = "ctrl+shift+\\"
 
 [notifications]
-visual = true   # desktop notifications (notify-send)
+visual = false   # desktop notifications (notify-send)
 sound = true    # the ding
 
 [network]
