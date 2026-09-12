@@ -4,6 +4,7 @@
 {
   imports = [
     ./avatar.nix
+    ./bitwarden.nix
     ./byobu.nix
     ./fish.nix
     ./git.nix
