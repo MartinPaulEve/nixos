@@ -39,7 +39,7 @@ home/                      Home Manager wiring, attached as a NixOS module
   martin/                  Per-user configuration
     default.nix
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
-    bitwarden.nix          Autostarts Bitwarden at login (SSH agent for commit signing + sshfs mounts)
+    bitwarden.nix          Bitwarden notes only: the app manages its own autostart (a declarative entry breaks it)
     byobu.nix              Byobu backend configuration
     fish.nix               Fish shell: byobu auto-launch, fastfetch, autoloaded functions
     git.nix                Git config, incl. SSH commit signing via the Bitwarden SSH agent
