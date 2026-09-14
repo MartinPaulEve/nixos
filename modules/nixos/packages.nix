@@ -169,6 +169,85 @@ let
         platforms = [ "x86_64-linux" "aarch64-linux" ];
       };
     };
+
+  # moji: Markdown viewer/editor (Electron), the default opener for .md files
+  # (the file association lives in home/martin/moji.nix). Not in nixpkgs, and
+  # upstream's Linux release binaries are x86_64-only, so on the aarch64 host
+  # it is built from source. electron-vite inlines every dependency into out/
+  # (electron-builder packs no node_modules), so the build output plus
+  # package.json is the whole app, run unpacked by nixpkgs' Electron.
+  # Electron pin: upstream develops against ^43; this nixpkgs tops out at
+  # electron_42, which runs it fine — on a nixpkgs bump, move to the newest
+  # electron_NN at or above 43. Refresh on bump: update version, src hash
+  # (`nix flake prefetch github:alexishida/Moji/v<version>`) and npmDepsHash
+  # (`prefetch-npm-deps package-lock.json` in the tagged checkout).
+  moji = pkgs.buildNpmPackage rec {
+    pname = "moji";
+    version = "1.0.7";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "alexishida";
+      repo = "Moji";
+      rev = "v${version}";
+      hash = "sha256-c9z7BR3AF9ygQ+whcJh+Kvh0afM0VDJPwFrHrfK4Wjc=";
+    };
+
+    npmDepsHash = "sha256-7iixeQnC5xlRvrpQ+MJYCP8Qb5s6DeinKT/Sm5936Tc=";
+
+    # The sandbox has no network, but `npm ci`'s lifecycle scripts try to use
+    # it: upstream's postinstall downloads the Electron binary (we run the
+    # nixpkgs one instead; Electron ≥ 42's install.js no longer honours
+    # ELECTRON_SKIP_BINARY_DOWNLOAD) and Playwright fetches browsers. Nothing
+    # in the tree actually needs install scripts — esbuild/rollup natives are
+    # prebuilt optional deps — and `npm run build` still runs the explicitly
+    # named script.
+    npmFlags = [ "--ignore-scripts" ];
+
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+
+    # buildNpmPackage's default buildPhase runs `npm run build`
+    # (electron-vite build), which emits the bundled app into out/.
+
+    installPhase = ''
+      runHook preInstall
+
+      # Everything electron-builder would pack (`files:` in
+      # electron-builder.yml), plus build/icon.png, which main.ts reads for
+      # the window icon when running unpacked (app.isPackaged == false).
+      mkdir -p $out/share/moji
+      cp -r out package.json samples $out/share/moji/
+      install -Dm444 build/icon.png $out/share/moji/build/icon.png
+
+      for size in 16 24 32 48 64 128 256 512 1024; do
+        install -Dm444 "build/icons/''${size}x''${size}.png" \
+          "$out/share/icons/hicolor/''${size}x''${size}/apps/moji.png"
+      done
+
+      # Upstream's desktop entry launches the AppImage's AppRun; point it at
+      # the wrapper instead (and keep the Chromium sandbox, which nixpkgs'
+      # Electron supports fine on NixOS).
+      install -Dm444 build/linux/moji.desktop $out/share/applications/moji.desktop
+      substituteInPlace $out/share/applications/moji.desktop \
+        --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=moji %U'
+
+      # Electron reads package.json in the app dir for the entry point.
+      # The Wayland flags mirror nixpkgs' Electron-app wrappers: inert unless
+      # NIXOS_OZONE_WL is set in a Wayland session.
+      makeWrapper ${lib.getExe pkgs.electron_42} $out/bin/moji \
+        --add-flags $out/share/moji \
+        --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations}}"
+
+      runHook postInstall
+    '';
+
+    meta = {
+      description = "Clean cross-platform Markdown viewer and editor";
+      homepage = "https://github.com/alexishida/Moji";
+      license = lib.licenses.mit;
+      mainProgram = "moji";
+      platforms = [ "x86_64-linux" "aarch64-linux" ];
+    };
+  };
 in
 {
   environment.systemPackages = with pkgs; [
@@ -204,6 +283,7 @@ in
     jetbrains.webstorm       # JavaScript / web IDE
     pkgs-insecure.sublime4   # Sublime Text (needs OpenSSL 1.1, see pkgs-insecure)
     obsidian                 # Note-taking app
+    moji                     # Markdown viewer/editor (built above); default .md opener
 
     # --- Development tooling ---
     jdk                      # Java Development Kit
