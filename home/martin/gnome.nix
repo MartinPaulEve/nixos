@@ -8,7 +8,8 @@
 #   - transient state: run-dialog command-history, welcome-dialog / donation
 #     reminder timestamps, and the VM-specific dash-to-dock monitor pin
 #
-# Requires the dash-to-dock extension package (installed via users.martin.packages).
+# Requires the dash-to-dock and appindicator extension packages (installed
+# via users.martin.packages).
 # Re-dump and regenerate if you want to capture new GNOME tweaks.
 { lib, ... }:
 
@@ -266,7 +267,10 @@ with lib.hm.gvariant;
     };
 
     "org/gnome/shell" = {
-      enabled-extensions = [ "dash-to-dock@micxgx.gmail.com" ];
+      # appindicator restores a tray area in the top bar: GNOME Shell dropped
+      # legacy status icons, so without it apps like Bitwarden have no tray
+      # icon at all (and "close/start to tray" leaves no way to reopen them).
+      enabled-extensions = [ "dash-to-dock@micxgx.gmail.com" "appindicatorsupport@rgcjonas.gmail.com" ];
       favorite-apps = [ "thunderbird.desktop" "signal.desktop" "org.telegram.desktop" "firefox.desktop" "chromium-browser.desktop" "torbrowser.desktop" "org.gnome.Rhythmbox3.desktop" "org.gnome.Nautilus.desktop" "org.gnome.Console.desktop" "bitwarden.desktop" "webstorm.desktop" "phpstorm.desktop" "pycharm.desktop" "sublime_text.desktop" "zotero.desktop" "calc.desktop" "writer.desktop" "gimp.desktop"];
     };
 
