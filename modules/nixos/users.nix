@@ -33,6 +33,7 @@
       thunderbird
       python3
       gnomeExtensions.dash-to-dock
+      gnomeExtensions.appindicator # tray icons (Bitwarden etc.); see gnome.nix
     ];
   };
 
