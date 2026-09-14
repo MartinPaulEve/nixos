@@ -23,8 +23,9 @@
 # and can never block boot or login: if a host is unreachable the unit simply
 # retries in the background until it succeeds (or is stopped).
 #
-# Authentication MUST come from the Bitwarden SSH agent (started at login by
-# bitwarden.nix): the IdentityAgent option below points the ssh that sshfs
+# Authentication MUST come from the Bitwarden SSH agent (Bitwarden manages
+# its own autostart entry — see the warning in bitwarden.nix): the
+# IdentityAgent option below points the ssh that sshfs
 # spawns straight at Bitwarden's socket, and BatchMode forbids every
 # interactive fallback — without it, ssh responds to a missing agent by
 # raising the desktop askpass dialog and asking for the remote password.
