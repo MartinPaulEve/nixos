@@ -14,6 +14,7 @@
     ./mounts.nix
     ./music.nix
     ./obsidian.nix
+    ./remmina.nix
     ./shell.nix
     ./sublime.nix
     ./transcribe-client.nix
