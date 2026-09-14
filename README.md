@@ -49,6 +49,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     mounts.nix             sshfs mounts under ~/mounts (systemd user services) + sshmount/sshumount helpers
     music.nix              Music tagging: beets (declarative config) + EasyTAG
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
+    remmina.nix            Pins Remmina's self-created autostart entry to Hidden=true
     shell.nix              Starship prompt + Atuin history
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
     transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
