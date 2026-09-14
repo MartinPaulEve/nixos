@@ -39,7 +39,7 @@ home/                      Home Manager wiring, attached as a NixOS module
   martin/                  Per-user configuration
     default.nix
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
-    bitwarden.nix          Autostarts Bitwarden at login (SSH agent for commit signing)
+    bitwarden.nix          Autostarts Bitwarden at login (SSH agent for commit signing + sshfs mounts)
     byobu.nix              Byobu backend configuration
     fish.nix               Fish shell: byobu auto-launch, fastfetch, autoloaded functions
     git.nix                Git config, incl. SSH commit signing via the Bitwarden SSH agent
@@ -48,7 +48,6 @@ home/                      Home Manager wiring, attached as a NixOS module
     mounts.nix             sshfs mounts under ~/mounts (systemd user services) + sshmount/sshumount helpers
     music.nix              Music tagging: beets (declarative config) + EasyTAG
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
-    onepassword.nix        Autostarts 1Password at login (sshfs mounts: op-read secrets + SSH agent)
     shell.nix              Starship prompt + Atuin history
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
     transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
@@ -324,17 +323,22 @@ Remote filesystems are mounted over sshfs under `~/mounts`, defined in
 | Unit | Remote | Mountpoint | At login? |
 | --- | --- | --- | --- |
 | `sshfs-waldorf` | `martin@waldorf:/home/martin` | `~/mounts/waldorf` | yes |
-| `sshfs-lg1` | `op://Personal/sshmount-lg1/remote` | `~/mounts/lg1` | no |
-| `sshfs-lg2` | `op://Personal/sshmount-lg2/remote` | `~/mounts/lg2` | no |
-| `sshfs-sm_mount` | `op://Personal/sshmount-sm_mount/remote` | `~/mounts/sm_mount` | no |
+| `sshfs-lg1` | `bw://sshmount-lg1` | `~/mounts/lg1` | no |
+| `sshfs-lg2` | `bw://sshmount-lg2` | `~/mounts/lg2` | no |
+| `sshfs-sm_mount` | `bw://sshmount-sm_mount` | `~/mounts/sm_mount` | no |
 | `sshfs-ia` | `backup:/interneta` | `~/mounts/ia` | no |
 
-The `op://` remotes are 1Password secret references: the unit resolves the
-real `host:path` with `op read` at mount time, so it never appears in this
-repo. Each referenced item is a Secure Note in the Personal vault with one
-text field, `remote`. The NAS paths (including `ia`'s) are relative to the
-Synology SFTP chroot, which exposes DSM shared folders at `/` rather than
-the real filesystem — `/volumeX` paths do not exist over SFTP.
+The `bw://` remotes are Bitwarden secure-note references: `sshmount`
+resolves every one in a single `bw unlock` (one master-password prompt per
+session) into a tmpfs cache wiped at logout, so the real `host:path` values
+never appear in this repo. Each referenced item is a Secure Note whose body
+is the literal `host:path`; the CLI needs a one-time `bw login`, and a
+`bw sync` after a note changes. Because `bw` can only unlock interactively,
+starting a `bw://` unit directly with systemctl before `sshmount` has filled
+the cache fails (and retries) rather than prompting. The NAS paths
+(including `ia`'s) are relative to the Synology SFTP chroot, which exposes
+DSM shared folders at `/` rather than the real filesystem — `/volumeX`
+paths do not exist over SFTP.
 
 Each mount is a systemd *user* service running sshfs as martin. The waldorf
 mount starts with the graphical session; the NAS mounts never start on their
@@ -358,11 +362,11 @@ back to `fusermount3 -uz` for a mount made by hand.
 
 They are deliberately *not* fstab entries (`fileSystems` with `noauto,user`):
 a user-invoked fstab mount runs the FUSE helper — and therefore ssh — as
-root, and authentication here comes from martin's 1Password SSH agent, whose
+root, and authentication here comes from martin's Bitwarden SSH agent, whose
 socket is user-owned and only serves same-user clients in the desktop
 session. Running sshfs as martin instead needs no root at any point (FUSE's
 setuid `fusermount3` wrapper does the privileged part) and picks up the agent
-naturally. The corollary is that mounting requires 1Password to be running
+naturally. The corollary is that mounting requires Bitwarden to be running
 and unlocked; an attempt made while it is locked fails quietly and the unit
 retries every 15 s (`BatchMode=yes` stops ssh falling back to an interactive
 password prompt). Because they are user services started after
