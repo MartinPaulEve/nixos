@@ -13,7 +13,10 @@
     };
   };
 
-  # 1Password.
+  # 1Password. Kept installed (vault access and the `op` CLI) but nothing
+  # autostarts or depends on it any more: the SSH agent, commit signing, and
+  # the sshfs mounts have all moved to Bitwarden (home/martin/bitwarden.nix,
+  # git.nix, mounts.nix).
   programs._1password.enable = true;
   programs._1password-gui = {
     enable = true;

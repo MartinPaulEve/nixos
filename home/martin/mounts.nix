@@ -3,7 +3,7 @@
 # Why these are not fstab entries (fileSystems + noauto,user): a user-invoked
 # fstab mount runs the FUSE mount helper — and therefore sshfs and ssh — as
 # root, so authentication would need a root process to talk to martin's
-# 1Password SSH agent. That socket is 0600, owned by martin, and 1Password
+# Bitwarden SSH agent. That socket is 0600, owned by martin, and Bitwarden
 # expects same-user clients inside the desktop session (the same reason
 # `sudo ssh` breaks under the agent), so the fstab route is a dead end.
 # Instead each mount is a systemd *user* service running sshfs as martin,
@@ -23,14 +23,14 @@
 # and can never block boot or login: if a host is unreachable the unit simply
 # retries in the background until it succeeds (or is stopped).
 #
-# Authentication MUST come from the 1Password SSH agent (started at login by
-# onepassword.nix): the IdentityAgent option below points the ssh that sshfs
-# spawns straight at 1Password's socket, and BatchMode forbids every
+# Authentication MUST come from the Bitwarden SSH agent (started at login by
+# bitwarden.nix): the IdentityAgent option below points the ssh that sshfs
+# spawns straight at Bitwarden's socket, and BatchMode forbids every
 # interactive fallback — without it, ssh responds to a missing agent by
 # raising the desktop askpass dialog and asking for the remote password.
-# With it, an attempt made before 1Password is up (or while it is locked)
+# With it, an attempt made before Bitwarden is up (or while it is locked)
 # simply fails and the unit retries. That is also why the units are tied to
-# graphical-session.target rather than default.target: 1Password authorises
+# graphical-session.target rather than default.target: Bitwarden authorises
 # key use with a GUI popup, which needs a desktop to appear on.
 #
 # The mountpoints are also created at every boot, owned by martin, by
@@ -43,17 +43,18 @@ let
 
   # Attribute name = directory under ${mountsDir} = unit name suffix.
   #
-  # A remote is either a literal host:path or a 1Password secret reference
-  # (op://vault/item/field), so the real host paths never appear in this
-  # repo. The referenced items are Secure Notes in the Personal vault with a
-  # single text field `remote` holding the literal host:path.
+  # A remote is either a literal host:path or a Bitwarden secure-note
+  # reference (bw://<item name>), so the real host paths never appear in
+  # this repo. Each referenced item is a Secure Note in the Bitwarden vault
+  # whose note body is the literal host:path.
   #
-  # Every op:// reference is resolved in ONE `op inject` run (a single
-  # 1Password authorisation prompt, via sshmount below) into a cache file in
-  # XDG_RUNTIME_DIR — tmpfs, mode 0600, wiped at logout — so later mounts in
-  # the same session prompt not at all. A unit started directly with
-  # systemctl (bypassing sshmount) falls back to its own `op read`, which
-  # costs one prompt for just that mount.
+  # Every bw:// reference is resolved in ONE `bw unlock` (a single
+  # master-password prompt in the terminal, via sshmount below) into a cache
+  # file in XDG_RUNTIME_DIR — tmpfs, mode 0600, wiped at logout — so later
+  # mounts in the same session prompt not at all. Unlike the 1Password CLI
+  # this replaces, `bw` has no desktop-app integration to defer to, so a
+  # unit started directly with systemctl (bypassing sshmount) cannot prompt:
+  # it fails, and retries, until sshmount has populated the cache.
   #
   # The NAS paths are share-relative, NOT absolute: DSM's SFTP service
   # chroots each user into a virtual root containing only the DSM shared
@@ -61,32 +62,43 @@ let
   # (not arbitrary directories or symlinks under /volumeX) are reachable.
   mounts = {
     waldorf      = { remote = "martin@waldorf:/home/martin"; autoStart = true; };
-    lg1      = { remote = "op://Personal/sshmount-lg1/remote"; };
-    lg2      = { remote = "op://Personal/sshmount-lg2/remote"; };
-    sm_mount = { remote = "op://Personal/sshmount-sm_mount/remote"; };
+    lg1      = { remote = "bw://sshmount-lg1"; };
+    lg2      = { remote = "bw://sshmount-lg2"; };
+    sm_mount = { remote = "bw://sshmount-sm_mount"; };
     ia           = { remote = "backup:/interneta"; };
   };
 
-  # The 1Password-referenced mounts, the env-var key each resolves into
+  # The Bitwarden-referenced mounts, the env-var key each resolves into
   # inside the session cache, and the one-shot resolver. The cache is only
-  # ever written by `op inject` output (KEY='host:path' lines), so sourcing
+  # ever written by the resolver below (KEY='host:path' lines), so sourcing
   # it is safe.
-  opMounts = lib.filterAttrs (_: cfg: lib.hasPrefix "op://" cfg.remote) mounts;
+  bwMounts = lib.filterAttrs (_: cfg: lib.hasPrefix "bw://" cfg.remote) mounts;
+  noteName = remote: lib.removePrefix "bw://" remote;
   envKey = name: "SSHFS_REMOTE_${lib.toUpper name}";
   cacheLine = ''cache="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/sshfs-remotes.env"'';
 
+  # One master-password prompt unlocks the CLI vault, then every note is
+  # fetched under the same session token. The CLI works from its local vault
+  # copy: it needs a one-time `bw login`, and a `bw sync` after a note is
+  # added or edited. Command substitution strips the note's trailing newline.
   resolveRemotes = pkgs.writeShellScript "sshfs-resolve-remotes" ''
     set -euo pipefail
     ${cacheLine}
     complete=1
-    for key in ${lib.concatStringsSep " " (map envKey (builtins.attrNames opMounts))}; do
+    for key in ${lib.concatStringsSep " " (map envKey (builtins.attrNames bwMounts))}; do
       grep -q "^$key=" "$cache" 2>/dev/null || complete=0
     done
     [ "$complete" -eq 1 ] && exit 0
+    session="$(bw unlock --raw)" || {
+      echo "sshmount: bw unlock failed (first use needs a one-time \`bw login\`)" >&2
+      exit 1
+    }
     umask 077
-    op inject > "$cache.tmp" <<'EOF'
-${lib.concatStringsSep "\n" (lib.mapAttrsToList (n: cfg: "${envKey n}='{{ ${cfg.remote} }}'") opMounts)}
-EOF
+    {
+      ${lib.concatStringsSep "\n      " (lib.mapAttrsToList (n: cfg:
+        ''v="$(bw get notes '${noteName cfg.remote}' --session "$session")" && printf "%s='%s'\n" ${envKey n} "$v"''
+      ) bwMounts)}
+    } > "$cache.tmp"
     mv "$cache.tmp" "$cache"
   '';
 
@@ -103,7 +115,7 @@ EOF
     "ServerAliveInterval=15" # with ServerAliveCountMax, detect dead links fast
     "ServerAliveCountMax=3"
     "BatchMode=yes"          # key auth only: never prompt for a password
-    "IdentityAgent=/home/martin/.1password/agent.sock" # the 1Password agent
+    "IdentityAgent=/home/martin/.bitwarden-ssh-agent.sock" # the Bitwarden agent
   ];
 
   mkMount = name: cfg:
@@ -116,17 +128,16 @@ EOF
         fusermount3 -uz ${mountPoint} 2>/dev/null || true
         mkdir -p ${mountPoint}
       '';
-      # Resolve an op:// remote (literal remotes pass straight through),
-      # then exec sshfs. The session cache written by sshmount's one-shot
-      # `op inject` is preferred; without it, fall back to a per-unit
-      # `op read` (one 1Password prompt). `op` comes from /run/wrappers/bin,
-      # which the unit's PATH puts first. A failed read (1Password locked,
-      # authorisation declined) fails the unit, which then retries on the
-      # usual RestartSec cadence.
+      # Resolve a bw:// remote (literal remotes pass straight through) from
+      # the session cache written by sshmount's one-shot resolver, then exec
+      # sshfs. There is no non-interactive fallback: the Bitwarden CLI can
+      # only unlock with the master password, which a unit has no terminal
+      # to prompt for. An unresolved remote fails the unit, which retries on
+      # the usual RestartSec cadence; run sshmount once to fill the cache.
       launch = pkgs.writeShellScript "sshfs-${name}-launch" ''
         remote='${cfg.remote}'
         case "$remote" in
-          op://*)
+          bw://*)
             ${cacheLine}
             resolved=""
             if [ -r "$cache" ]; then
@@ -134,7 +145,8 @@ EOF
               resolved="''${${envKey name}:-}"
             fi
             if [ -z "$resolved" ]; then
-              resolved="$(op read "$remote")" || exit 1
+              echo "sshfs-${name}: remote not in $cache; run \`sshmount ${name}\` to resolve it" >&2
+              exit 1
             fi
             remote="$resolved"
             ;;
@@ -146,7 +158,7 @@ EOF
     {
       Unit = {
         Description = "sshfs mount of ${cfg.remote} at ${mountPoint}";
-        # Never started before the desktop is up, so 1Password can show its
+        # Never started before the desktop is up, so Bitwarden can show its
         # authorisation popup. Losing the mount never tears down the session,
         # and the session never waits on the mount.
         After = [ "graphical-session.target" ];
@@ -167,8 +179,8 @@ EOF
         # mountpoint by then, so there is nothing worth waiting for: kill the
         # leftover sshfs process quickly.
         TimeoutStopSec = "5s";
-        # Retry quietly until the host is reachable and 1Password has
-        # authorised the key. Spaced out enough that a locked 1Password is
+        # Retry quietly until the host is reachable and Bitwarden has
+        # authorised the key. Spaced out enough that a locked Bitwarden is
         # not nagged with rapid-fire agent requests.
         Restart = "on-failure";
         RestartSec = "15s";
@@ -208,11 +220,11 @@ EOF
   sshmount = pkgs.writeShellScriptBin "sshmount" ''
     set -euo pipefail
     ${resolveTargets}
-    # Resolve every 1Password-referenced remote in one go (single
-    # authorisation prompt) before starting units; a no-op when the session
+    # Resolve every Bitwarden-referenced remote in one go (single
+    # master-password prompt) before starting units; a no-op when the session
     # cache is already complete or no requested mount needs it.
     for name in "''${targets[@]}"; do
-      for o in ${builtins.concatStringsSep " " (builtins.attrNames opMounts)}; do
+      for o in ${builtins.concatStringsSep " " (builtins.attrNames bwMounts)}; do
         if [ "$name" = "$o" ]; then ${resolveRemotes}; break 2; fi
       done
     done
@@ -235,7 +247,7 @@ EOF
         echo "mounted ${mountsDir}/$name"
       else
         echo "sshfs-$name is not up yet; it will keep retrying in the" \
-             "background (is 1Password unlocked and the host reachable?)"
+             "background (is Bitwarden unlocked and the host reachable?)"
       fi
     done
   '';
