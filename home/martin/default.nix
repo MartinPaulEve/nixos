@@ -13,7 +13,6 @@
     ./mounts.nix
     ./music.nix
     ./obsidian.nix
-    ./onepassword.nix
     ./shell.nix
     ./sublime.nix
     ./transcribe-client.nix
