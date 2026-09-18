@@ -1,0 +1,47 @@
+Host waldorf
+	HostName waldorf
+	User martin
+	ForwardAgent yes
+	IdentitiesOnly yes
+	IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+	IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
+
+Host v2
+        HostName v2
+        User martin
+        ForwardAgent yes
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/id_ed25519_v2.pub
+
+Host reclaim
+        HostName reclaim
+        User evegd
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
+
+Host lg
+	HostName libgen
+	ForwardAgent yes
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
+
+Host sh
+        HostName scihub
+        ForwardAgent yes
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
+
+Host github.com
+        HostName github.com
+        User MartinPaulEve
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
+
+
+Host *
+	IdentityAgent ~/.bitwarden-ssh-agent.sock
