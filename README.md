@@ -51,6 +51,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
     remmina.nix            Pins Remmina's self-created autostart entry to Hidden=true
     shell.nix              Starship prompt + Atuin history
+    ssh.nix                OpenSSH client config + public keys (verbatim from ssh/)
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
     transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
     unison.nix             Unison sync profile
@@ -58,6 +59,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     zotero.nix             Registers the Zotero LibreOffice extension (per-user)
     functions/             Fish functions, linked into ~/.config/fish/functions
     gnome/                 GNOME assets (monitors.xml display layout)
+    ssh/                   ~/.ssh/config source and public keys (secrets stay in the Bitwarden agent)
     sublime/               Sublime User files (Jekyll front-matter override plugin)
     transcribe/            transcribe.toml for the voice-transcription client
     unison/                Unison profile source

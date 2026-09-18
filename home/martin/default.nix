@@ -16,6 +16,7 @@
     ./obsidian.nix
     ./remmina.nix
     ./shell.nix
+    ./ssh.nix
     ./sublime.nix
     ./transcribe-client.nix
     ./unison.nix
