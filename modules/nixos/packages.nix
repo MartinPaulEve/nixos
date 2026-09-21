@@ -301,6 +301,7 @@ in
     sequoia-cli              # Publish blog posts to the AT Protocol (built above)
     commitizen               # Conventional-commit helper
     github-cli               # GitHub CLI (`gh`)
+    awscli2                  # AWS CLI v2 (`aws`); self-contained, credentials via `aws configure`
     claude-code              # Anthropic Claude Code CLI
     codex                    # OpenAI Codex CLI coding agent
     pkg-config               # Package checker
