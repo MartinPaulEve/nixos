@@ -84,7 +84,7 @@ function:
 | Terminal / shell | eza, btop, zellij, fastfetch, byobu, tmux |
 | File sync & dotfiles | rsync, unison, stow |
 | Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text, Obsidian, Moji |
-| Development tooling | jdk, uv, bundler, php, composer, subversion, jekyll, imagemagick, exiftool, commonmeta, sequoia-cli, commitizen, github-cli, claude-code, codex |
+| Development tooling | jdk, uv, bundler, php, composer, subversion, jekyll, imagemagick, exiftool, commonmeta, sequoia-cli, commitizen, github-cli, awscli2, claude-code, codex |
 | Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, libmysqlclient, mariadb (+ connector headers), postgresql |
 | Web browsers & automation | chromium, tor-browser, puppeteer-cli, chromedriver |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3, tcpdump |
