@@ -41,7 +41,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
     bitwarden.nix          Bitwarden notes only: the app manages its own autostart (a declarative entry breaks it)
     byobu.nix              Byobu backend configuration
-    fish.nix               Fish shell: byobu auto-launch, fastfetch, autoloaded functions
+    fish.nix               Fish shell: context-aware byobu launch, fastfetch, autoloaded functions
     git.nix                Git config, incl. SSH commit signing via the Bitwarden SSH agent
     gnome.nix              GNOME settings as declarative dconf
     mac-folders.nix        Maps the macOS host's Parallels-shared folders into $HOME
@@ -314,8 +314,14 @@ fish configuration is fully managed here, having replaced an earlier GNU Stow
 setup; `home/default.nix` sets `backupFileExtension` and the fish files use
 `force = true` so activation cleanly supersedes any leftover stow symlinks.
 
-Interactive fish shells launch byobu automatically (`home/martin/fish.nix`).
-The init guards against recursion — byobu starts tmux, whose nested fish has
+Interactive fish shells launch byobu automatically (`home/martin/fish.nix`),
+context-aware: a shell starting at `~` (a normal terminal launch) attaches
+byobu as before; one starting anywhere else was opened *at* that directory
+(Files' "Open Terminal Here"), so it hands off — it creates a byobu window at
+that directory in the running session and closes itself, keeping everything in
+the one byobu terminal (or starts byobu there if none is running). JetBrains
+IDE terminals (`$TERMINAL_EMULATOR`) stay plain fish at the project root. The
+init also guards against recursion — byobu starts tmux, whose nested fish has
 `$TMUX` set and so skips the re-exec — and against having no controlling tty, so
 scp/rsync and editor-embedded shells are left alone.
 

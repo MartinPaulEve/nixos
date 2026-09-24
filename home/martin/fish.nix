@@ -17,18 +17,39 @@ in
     # The starship prompt and atuin history are wired in automatically by their
     # own Home Manager modules; see ./shell.nix.
     #
-    # Launch byobu automatically for interactive shells. The guards keep this from
-    # recursing: byobu starts tmux, which spawns a fresh interactive fish with
-    # $TMUX set, so the nested shell skips the exec and just runs fastfetch. We
-    # also bail out when already inside byobu ($BYOBU_BACKEND) or when there is no
-    # controlling tty (e.g. scp/rsync, editor-embedded shells) to avoid hijacking
-    # non-visual sessions.
+    # Launch byobu automatically for interactive shells, but context-aware:
+    #
+    #  - The first three guards keep this from recursing: byobu starts tmux,
+    #    which spawns a fresh interactive fish with $TMUX set, so the nested
+    #    shell skips the exec and just runs fastfetch. We also bail out when
+    #    already inside byobu ($BYOBU_BACKEND) or when there is no controlling
+    #    tty (e.g. scp/rsync, editor-embedded shells).
+    #  - IDE-embedded terminals (JetBrains JediTerm sets $TERMINAL_EMULATOR)
+    #    stay plain fish: the IDE opens the shell at the project root and
+    #    manages its own tabs, and byobu's F-keys fight the IDE's.
+    #  - A shell that starts at ~ is a normal terminal launch: run byobu as
+    #    before.
+    #  - A shell that starts anywhere else was opened *at* that directory
+    #    (Files' "Open Terminal Here"). Attaching would discard the directory,
+    #    and attaching after new-window would mirror the session across two
+    #    terminals (shared focus, shrink-to-smallest), so instead hand off:
+    #    create a window at $PWD in the running byobu session — new-window
+    #    without -d also focuses it there — and close this popup terminal.
+    #    With no byobu running yet, start one at that directory.
     interactiveShellInit = ''
       if status is-interactive
           and not set -q TMUX
           and not set -q BYOBU_BACKEND
+          and not string match -q 'JetBrains*' -- "$TERMINAL_EMULATOR"
           and test -t 1
-          exec byobu
+          if test "$PWD" = "$HOME"
+              exec byobu
+          else if byobu list-sessions >/dev/null 2>&1
+              byobu new-window -c "$PWD"
+              exit
+          else
+              exec byobu new-session -c "$PWD"
+          end
       end
 
       fastfetch
