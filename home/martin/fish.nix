@@ -35,6 +35,11 @@ in
     #    terminals (shared focus, shrink-to-smallest), so instead hand off:
     #    create a window at $PWD in the running byobu session — new-window
     #    without -d also focuses it there — and close this popup terminal.
+    #    The handoff must be exec'd, not run-then-`exit`: fish's `exit` during
+    #    config sourcing only aborts the remaining startup files and still
+    #    drops into the interactive prompt, leaving the popup open. exec'ing
+    #    the (short-lived) tmux client makes it the terminal's child, so the
+    #    window closes as soon as the new byobu window is created.
     #    With no byobu running yet, start one at that directory.
     interactiveShellInit = ''
       if status is-interactive
@@ -45,8 +50,7 @@ in
           if test "$PWD" = "$HOME"
               exec byobu
           else if byobu list-sessions >/dev/null 2>&1
-              byobu new-window -c "$PWD"
-              exit
+              exec byobu new-window -c "$PWD"
           else
               exec byobu new-session -c "$PWD"
           end
