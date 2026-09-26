@@ -30,6 +30,14 @@
     # a nixpkgs `follows`: it carries its own nixpkgs + rust-overlay so its Rust
     # toolchain stays consistent. Update with: nix flake update herdr
     herdr.url = "github:ogulcancelik/herdr";
+
+    # Always-up-to-date Claude Code (own fork of sadjow/claude-code-nix, which
+    # repackages Anthropic's official self-contained native binary and bumps
+    # hourly), replacing the lag-prone nixpkgs claude-code. Deliberately left
+    # without a nixpkgs `follows`: keeping its own pin matches the derivations
+    # its CI builds and caches. Pull the latest version with:
+    # nix flake update claude-code
+    claude-code.url = "github:MartinPaulEve/claude-code-nix";
   };
 
   outputs = inputs@{ self, nixpkgs, ... }: {
