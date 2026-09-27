@@ -175,9 +175,9 @@ let
   # it is built from source. electron-vite inlines every dependency into out/
   # (electron-builder packs no node_modules), so the build output plus
   # package.json is the whole app, run unpacked by nixpkgs' Electron.
-  # Electron pin: upstream develops against ^43; this nixpkgs tops out at
-  # electron_42, which runs it fine — on a nixpkgs bump, move to the newest
-  # electron_NN at or above 43. Refresh on bump: update version, src hash
+  # Electron pin: upstream develops against ^43; run it on the newest
+  # electron_NN nixpkgs offers — on a nixpkgs bump, check for a newer one.
+  # Refresh on bump: update version, src hash
   # (`nix flake prefetch github:alexishida/Moji/v<version>`) and npmDepsHash
   # (`prefetch-npm-deps package-lock.json` in the tagged checkout).
   moji = pkgs.buildNpmPackage rec {
@@ -232,7 +232,7 @@ let
       # Electron reads package.json in the app dir for the entry point.
       # The Wayland flags mirror nixpkgs' Electron-app wrappers: inert unless
       # NIXOS_OZONE_WL is set in a Wayland session.
-      makeWrapper ${lib.getExe pkgs.electron_42} $out/bin/moji \
+      makeWrapper ${lib.getExe pkgs.electron_44} $out/bin/moji \
         --add-flags $out/share/moji \
         --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations}}"
 
