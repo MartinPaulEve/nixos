@@ -95,14 +95,11 @@ function:
 | System & disk utilities | libnotify, xclip, file-roller, gparted, safeeyes, remmina |
 | Miscellaneous | herdr, worksummary |
 
-Sublime Text and the Bitwarden desktop app are pulled from a dedicated `pkgs`
-instance that permits the insecure packages they depend on (OpenSSL 1.1 and an
-end-of-life Electron respectively), scoped so the exceptions never apply to
-the rest of the system; on a nixpkgs bump, check whether `bitwarden-desktop`
-has moved to a supported Electron and drop its entry. Hydra does not build
-insecure-marked packages, so `bitwarden-desktop` is compiled locally on first
-rebuild (its Electron is the repackaged official binary, so this is the app
-build only, not a Chromium build). The Docker CLI is
+Sublime Text is pulled from a dedicated `pkgs` instance that permits the
+insecure OpenSSL 1.1 it depends on, scoped so the exception never applies to
+the rest of the system. (Bitwarden's desktop app lived there too while it
+shipped an end-of-life Electron; nixpkgs now builds it against a supported
+one, so it comes from the regular package set.) The Docker CLI is
 provided separately by `virtualisation.nix`. After activation, the Zotero
 LibreOffice integration extension is registered automatically.
 
