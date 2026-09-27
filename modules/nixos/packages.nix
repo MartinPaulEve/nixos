@@ -3,17 +3,16 @@
 
 let
   # A pkgs instance that permits the insecure packages some apps depend on:
-  # Sublime Text needs OpenSSL 1.1, and Bitwarden's desktop app ships an EOL
-  # Electron. Scoped here so the exceptions never leak into the system-wide
-  # pkgs. Electron pin: check whether a nixpkgs bump lets bitwarden-desktop
-  # build against a supported Electron, and drop the entry when it does.
+  # Sublime Text needs OpenSSL 1.1. Scoped here so the exception never leaks
+  # into the system-wide pkgs. (Bitwarden's desktop app lived here too while
+  # it shipped an EOL Electron; it moved back to the regular pkgs once
+  # nixpkgs rebuilt it against a supported one.)
   pkgs-insecure = import inputs.nixpkgs {
     inherit (pkgs.stdenv.hostPlatform) system;
     config = {
       allowUnfree = true;
       permittedInsecurePackages = [
         "openssl-1.1.1w"
-        "electron-39.8.10"
       ];
     };
   };
@@ -364,7 +363,7 @@ in
     # --- Security & authentication ---
     _1password-gui           # 1Password desktop app
     _1password-cli           # 1Password CLI (`op`)
-    pkgs-insecure.bitwarden-desktop  # Bitwarden desktop app (EOL Electron, see pkgs-insecure)
+    bitwarden-desktop        # Bitwarden desktop app
     bitwarden-cli            # Bitwarden CLI (`bw`)
     yubikey-manager          # YubiKey configuration tool (ykman)
     yubikey-personalization  # YubiKey personalization utilities
