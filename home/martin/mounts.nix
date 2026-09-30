@@ -21,7 +21,8 @@
 #
 # Because these are user services they start asynchronously with the session
 # and can never block boot or login: if a host is unreachable the unit simply
-# retries in the background until it succeeds (or is stopped).
+# retries in the background — with exponential backoff, see the Restart
+# settings below — until it succeeds (or is stopped).
 #
 # Authentication MUST come from the Bitwarden SSH agent (Bitwarden manages
 # its own autostart entry — see the warning in bitwarden.nix): the
@@ -181,10 +182,17 @@ let
         # leftover sshfs process quickly.
         TimeoutStopSec = "5s";
         # Retry quietly until the host is reachable and Bitwarden has
-        # authorised the key. Spaced out enough that a locked Bitwarden is
-        # not nagged with rapid-fire agent requests.
+        # authorised the key, with exponential backoff: the first retries
+        # come at 15s — enough to ride out the boot-time window before
+        # MagicDNS can resolve the host — then the delay ramps up to one
+        # attempt every 10 minutes. Without the ramp, an unreachable host
+        # (asleep, off-net) had the unit relaunching ssh four times a minute
+        # indefinitely, measured as a real battery drain on the host Mac.
+        # The ramp resets once a start succeeds.
         Restart = "on-failure";
         RestartSec = "15s";
+        RestartSteps = 8;
+        RestartMaxDelaySec = "10min";
       };
     }
     // lib.optionalAttrs (cfg.autoStart or false) {

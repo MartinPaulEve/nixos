@@ -375,8 +375,9 @@ session. Running sshfs as martin instead needs no root at any point (FUSE's
 setuid `fusermount3` wrapper does the privileged part) and picks up the agent
 naturally. The corollary is that mounting requires Bitwarden to be running
 and unlocked; an attempt made while it is locked fails quietly and the unit
-retries every 15 s (`BatchMode=yes` stops ssh falling back to an interactive
-password prompt). Because they are user services started after
+retries — every 15 s at first, backing off exponentially to every 10 min
+while the failures persist (`BatchMode=yes` stops ssh falling back to an
+interactive password prompt). Because they are user services started after
 `graphical-session.target`, an unreachable host can never hang boot or login.
 
 The mountpoints themselves are created at every boot, owned by martin, by
