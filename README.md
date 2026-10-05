@@ -15,7 +15,7 @@ modules/
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
     boot.nix               Bootloader, kernel, LUKS, Plymouth splash
-    desktop.nix            X11, GNOME, GNOME Tweaks, Firefox
+    desktop.nix            X11, GNOME, GNOME Tweaks, GPaste clipboard manager, Firefox
     email.nix              Thunderbird + Proton Mail bridge (headless service)
     espanso.nix            uinput access for espanso's Wayland EVDEV injection
     fonts.nix              System fonts, incl. Nerd Fonts
@@ -94,6 +94,29 @@ function:
 | Communication | signal-desktop, telegram-desktop, holos |
 | System & disk utilities | libnotify, xclip, file-roller, gparted, safeeyes, remmina |
 | Miscellaneous | herdr, worksummary |
+
+Not everything installed lives in that list. Several modules pull in their own
+packages, or enable a NixOS/Home Manager `programs.*`/`services.*` option that
+installs one as a side effect:
+
+| Where | What it installs |
+| --- | --- |
+| `modules/nixos/desktop.nix` | GNOME (via `services.desktopManager.gnome`), GNOME Tweaks, GPaste (`programs.gpaste`: clipboard manager + shell extension), Firefox (`programs.firefox`) |
+| `modules/nixos/email.nix` | Thunderbird, Proton Mail bridge (headless build; see below) |
+| `modules/nixos/security.nix` | GnuPG + `gpg-agent` (`programs.gnupg.agent`), `pam_u2f` / `pamu2fcfg` (YubiKey enrolment), the 1Password polkit integration |
+| `modules/nixos/networking.nix` | NetworkManager, `tailscaled`, OpenVPN 3 (`programs.openvpn3`) |
+| `modules/nixos/virtualisation.nix` | Docker daemon + CLI |
+| `modules/nixos/transcribe-client.nix` | `wl-clipboard` (`wl-copy`/`wl-paste`), `ydotool` + `ydotoold` |
+| `modules/nixos/keyd.nix` | keyd (system-wide key remapping daemon) |
+| `modules/nixos/users.nix` | `users.martin.packages`: Thunderbird (duplicate of `email.nix`'s, harmless), Python 3, the dash-to-dock and appindicator GNOME Shell extensions |
+| `modules/nixos/fonts.nix` | Nerd Fonts (CaskaydiaCove, Symbols Only) |
+| `home/martin/shell.nix` | Starship prompt, Atuin shell history |
+| `home/martin/music.nix` | beets (declarative config), EasyTAG |
+| `home/martin/whipper.nix` | whipper CD ripper |
+| `home/martin/sublime.nix`, `obsidian.nix` | Pinned Sublime Text and Obsidian plugins (not apps; see below) |
+
+espanso (text expander) is the one desktop tool *not* declared anywhere here:
+it still runs from a hand-registered user unit, see the espanso note below.
 
 Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on, scoped so the exception never applies to
@@ -187,6 +210,25 @@ package name: Chromium installs `chromium-browser.desktop`, not
 `chromium.desktop`, and Telegram installs `org.telegram.desktop`. Check with
 `ls /run/current-system/sw/share/applications` before adding a favourite.
 
+[GPaste](https://github.com/Keruspe/GPaste) is the clipboard manager, enabled
+with `programs.gpaste` in `modules/nixos/desktop.nix`. That NixOS option
+installs the daemon (`gpaste-client` on the CLI), its D-Bus activation and
+systemd user units, and puts the package on the GNOME session path — which is
+where GNOME Shell finds GPaste's own shell extension (it ships inside the
+gpaste package, not under `gnomeExtensions.*`) and where Settings → Keyboard
+finds the GSettings schemas it otherwise crashes without. The extension is
+then switched on per user in `home/martin/gnome.nix`'s `enabled-extensions`
+(UUID `GPaste@gnome-shell-extensions.gnome.org`); like any newly enabled
+extension it only appears after the shell restarts, so log out and back in
+after the first rebuild. nixpkgs carries GPaste 45.5, whose extension
+declares support for the running GNOME Shell 50, so no version-check override
+is needed. Its default shortcuts are GPaste's own (all `Ctrl+Alt`): `H` opens
+the history, `G` the graphical tool, `V` deletes the active item, `S` marks
+it as a password, `O`/`P` sync clipboard and primary selection; they can be
+changed under Settings → Keyboard → Keyboard Shortcuts → GPaste, or pinned
+in dconf under `org/gnome/GPaste`. History is per-user state in
+`~/.local/share/gpaste/`.
+
 The user profile picture is tracked as `home/martin/avatar.jpg`. `users.nix`
 links it to `/var/lib/AccountsService/icons/martin` *and* writes the
 AccountsService state file `/var/lib/AccountsService/users/martin` with a
@@ -269,8 +311,13 @@ backend needs: reading keyboards comes from the `input` group above, and
 injection requires opening `/dev/uinput`, enabled via `hardware.uinput` plus
 the `uinput` group. Without the uinput half espanso crash-loops, briefly
 flashing its layout-detection window at every restart. The espanso app and
-config themselves are still imperative (stowed dotfiles and a hand-registered
-systemd user unit), pending the Home Manager migration.
+config themselves are still imperative, pending the Home Manager migration:
+the binary is a bare `/nix/store/...-espanso-2.3.0` path with no GC root
+(it will vanish at the next `nix-collect-garbage`, taking the service with
+it), started by a hand-written `~/.config/systemd/user/espanso.service`.
+Matches (the text-expansion snippets) live in `~/.config/espanso/match/*.yml`
+and global options in `~/.config/espanso/config/default.yml`; both are the
+stock templates so far, and espanso reloads them on save.
 
 [worksummary](https://github.com/MartinPaulEve/worksummary) is a self-authored
 CLI for logging daily work items. It is consumed as a flake input (built from a
