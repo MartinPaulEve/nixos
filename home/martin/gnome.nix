@@ -9,7 +9,7 @@
 #     reminder timestamps, and the VM-specific dash-to-dock monitor pin
 #
 # Requires the dash-to-dock and appindicator extension packages (installed
-# via users.martin.packages).
+# via users.martin.packages) and GPaste (programs.gpaste in desktop.nix).
 # Re-dump and regenerate if you want to capture new GNOME tweaks.
 { lib, ... }:
 
