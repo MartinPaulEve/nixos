@@ -10,7 +10,6 @@
     ./git.nix
     ./gnome.nix
     ./mac-folders.nix
-    ./moji.nix
     ./mounts.nix
     ./music.nix
     ./obsidian.nix
