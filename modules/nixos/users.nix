@@ -34,6 +34,7 @@
       python3
       gnomeExtensions.dash-to-dock
       gnomeExtensions.appindicator # tray icons (Bitwarden etc.); see gnome.nix
+      gnomeExtensions.clipboard-indicator # clipboard history in the top bar; see gnome.nix
     ];
   };
 
