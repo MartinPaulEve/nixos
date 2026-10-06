@@ -15,7 +15,7 @@ modules/
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
     boot.nix               Bootloader, kernel, LUKS, Plymouth splash
-    desktop.nix            X11, GNOME, GNOME Tweaks, GPaste clipboard manager, Firefox
+    desktop.nix            X11, GNOME, GNOME Tweaks, Firefox
     email.nix              Thunderbird + Proton Mail bridge (headless service)
     espanso.nix            uinput access for espanso's Wayland EVDEV injection
     fonts.nix              System fonts, incl. Nerd Fonts
@@ -100,14 +100,14 @@ installs one as a side effect:
 
 | Where | What it installs |
 | --- | --- |
-| `modules/nixos/desktop.nix` | GNOME (via `services.desktopManager.gnome`), GNOME Tweaks, GPaste (`programs.gpaste`: clipboard manager + shell extension), Firefox (`programs.firefox`) |
+| `modules/nixos/desktop.nix` | GNOME (via `services.desktopManager.gnome`), GNOME Tweaks, Firefox (`programs.firefox`) |
 | `modules/nixos/email.nix` | Thunderbird, Proton Mail bridge (headless build; see below) |
 | `modules/nixos/security.nix` | GnuPG + `gpg-agent` (`programs.gnupg.agent`), `pam_u2f` / `pamu2fcfg` (YubiKey enrolment), the 1Password polkit integration |
 | `modules/nixos/networking.nix` | NetworkManager, `tailscaled`, OpenVPN 3 (`programs.openvpn3`) |
 | `modules/nixos/virtualisation.nix` | Docker daemon + CLI |
 | `modules/nixos/transcribe-client.nix` | `wl-clipboard` (`wl-copy`/`wl-paste`), `ydotool` + `ydotoold` |
 | `modules/nixos/keyd.nix` | keyd (system-wide key remapping daemon) |
-| `modules/nixos/users.nix` | `users.martin.packages`: Thunderbird (duplicate of `email.nix`'s, harmless), Python 3, the dash-to-dock and appindicator GNOME Shell extensions |
+| `modules/nixos/users.nix` | `users.martin.packages`: Thunderbird (duplicate of `email.nix`'s, harmless), Python 3, the dash-to-dock, appindicator and clipboard-indicator GNOME Shell extensions |
 | `modules/nixos/fonts.nix` | Nerd Fonts (CaskaydiaCove, Symbols Only) |
 | `home/martin/shell.nix` | Starship prompt, Atuin shell history |
 | `home/martin/music.nix` | beets (declarative config), EasyTAG |
@@ -209,24 +209,25 @@ package name: Chromium installs `chromium-browser.desktop`, not
 `chromium.desktop`, and Telegram installs `org.telegram.desktop`. Check with
 `ls /run/current-system/sw/share/applications` before adding a favourite.
 
-[GPaste](https://github.com/Keruspe/GPaste) is the clipboard manager, enabled
-with `programs.gpaste` in `modules/nixos/desktop.nix`. That NixOS option
-installs the daemon (`gpaste-client` on the CLI), its D-Bus activation and
-systemd user units, and puts the package on the GNOME session path — which is
-where GNOME Shell finds GPaste's own shell extension (it ships inside the
-gpaste package, not under `gnomeExtensions.*`) and where Settings → Keyboard
-finds the GSettings schemas it otherwise crashes without. The extension is
-then switched on per user in `home/martin/gnome.nix`'s `enabled-extensions`
-(UUID `GPaste@gnome-shell-extensions.gnome.org`); like any newly enabled
-extension it only appears after the shell restarts, so log out and back in
-after the first rebuild. nixpkgs carries GPaste 45.5, whose extension
-declares support for the running GNOME Shell 50, so no version-check override
-is needed. Its default shortcuts are GPaste's own (all `Ctrl+Alt`): `H` opens
-the history, `G` the graphical tool, `V` deletes the active item, `S` marks
-it as a password, `O`/`P` sync clipboard and primary selection; they can be
-changed under Settings → Keyboard → Keyboard Shortcuts → GPaste, or pinned
-in dconf under `org/gnome/GPaste`. History is per-user state in
-`~/.local/share/gpaste/`.
+The clipboard manager is the [Clipboard
+Indicator](https://github.com/Tudmotu/gnome-shell-extension-clipboard-indicator)
+GNOME Shell extension (`gnomeExtensions.clipboard-indicator` in
+`modules/nixos/users.nix`, enabled in `home/martin/gnome.nix`). It is pure
+GJS — no daemon, no D-Bus service — and tracks GNOME releases closely, so it
+needs nothing beyond the extension package. Ctrl+F9 opens the history menu,
+Ctrl+F11/Ctrl+F12 cycle through entries, Ctrl+F8 toggles private mode, and
+Ctrl+F10 clears the history; all are changeable in the extension's settings
+(also exposed in GNOME's Extensions app), or pinnable in dconf under
+`org/gnome/shell/extensions/clipboard-indicator`. History persists in
+`~/.cache/clipboard-indicator@tudmotu.com/` in plain text, so copy
+passwords with private mode on, or set `cache-only-favorites`.
+
+GPaste was tried first (`programs.gpaste`) and removed: nixpkgs carries 45.5,
+the last GTK 3 release, two GNOME versions behind the running shell. On GNOME
+50 it cannot grab its shortcuts (`GrabAccelerators is not allowed`, falling
+back to an X11 keybinder that does nothing under Wayland), and its window
+closed/crashed whenever a history entry was clicked. Its history file,
+`~/.local/share/gpaste/history.xml`, is left behind and can be deleted.
 
 The user profile picture is tracked as `home/martin/avatar.jpg`. `users.nix`
 links it to `/var/lib/AccountsService/icons/martin` *and* writes the
