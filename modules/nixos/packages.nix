@@ -208,8 +208,13 @@ in
     jdk                      # Java Development Kit
     uv                       # Fast Python package / project manager
     bundler                  # Ruby dependency manager
-    php                      # PHP interpreter (CLI)
-    phpPackages.composer     # PHP dependency manager
+    # PHP is pinned to the php85 attribute rather than nixpkgs' default `php`
+    # alias (8.4 at the time of writing), so the version is explicit here.
+    # Composer must come from the matching phpNNPackages set so it runs on
+    # the same interpreter. On a nixpkgs bump, check whether a newer phpNN
+    # exists and move both lines together.
+    php85                    # PHP 8.5 interpreter (CLI)
+    php85Packages.composer   # PHP dependency manager
     subversion               # Subversion version control (svn)
     (jekyll.override {       # Static site generator; full variant bundles
       withOptionalDependencies = true;  # jekyll-feed etc. needed by the blog
