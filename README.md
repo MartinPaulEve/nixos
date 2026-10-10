@@ -52,7 +52,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     remmina.nix            Pins Remmina's self-created autostart entry to Hidden=true
     shell.nix              Starship prompt + Atuin history
     ssh.nix                OpenSSH client config + public keys (verbatim from ssh/)
-    sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned
+    sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned, + the inlyne preview command
     transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
@@ -60,7 +60,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     functions/             Fish functions, linked into ~/.config/fish/functions
     gnome/                 GNOME assets (monitors.xml display layout)
     ssh/                   ~/.ssh/config source and public keys (secrets stay in the Bitwarden agent)
-    sublime/               Sublime User files (Jekyll front-matter override plugin)
+    sublime/               Sublime User files (Jekyll front-matter override, markdown preview plugins)
     transcribe/            transcribe.toml for the voice-transcription client
     unison/                Unison profile source
     whipper/               Whipper config source
@@ -159,6 +159,18 @@ replace the stock ones without touching the plugin itself). New posts get a
 quoted title, today's date, a DOI minted at creation time via `commonmeta
 encode`, and the eve.gd image placeholder block. The README installed
 alongside it documents the details.
+
+Markdown is previewed with inlyne, a native (Rust, GPU-rendered) viewer that
+watches the file it is showing and re-renders on every save, so it sits beside
+Sublime as a live preview. "Markdown: Open Preview" in Sublime's command
+palette (alt+p in markdown files; `home/martin/sublime/markdown_preview.py`)
+launches it on the current file, and `home/martin/markdown-preview.nix` makes
+it the default opener for `.md` files and sets its theme to follow GNOME's
+light/dark preference. Because `Packages/User/Default (Linux).sublime-keymap`
+is now a store symlink, further user keybindings belong in `sublime.nix`. Moji
+(Electron) was tried first and crashed at startup; Apostrophe, the GNOME-native
+alternative, only offers a reload prompt when the file changes on disk, which
+makes it an editor rather than a preview for edits made elsewhere.
 
 `commonmeta` (a scholarly-metadata format converter) is not packaged in
 nixpkgs, so `packages.nix` builds it from its pinned upstream release with
