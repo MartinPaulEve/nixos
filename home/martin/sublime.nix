@@ -85,5 +85,33 @@ in
           command = "jekyll_eve_categories";
         }
       ];
+
+    # Markdown preview: "Markdown: Open Preview" (alt+p in markdown files)
+    # launches inlyne on the current file. inlyne re-renders on every save,
+    # so the window is opened once and then just left beside Sublime. The
+    # previewer itself is installed in modules/nixos/packages.nix.
+    "sublime-text/Packages/User/markdown_preview.py".source =
+      ./sublime/markdown_preview.py;
+    "sublime-text/Packages/User/MarkdownPreview.sublime-commands".text =
+      builtins.toJSON [
+        {
+          caption = "Markdown: Open Preview";
+          command = "open_markdown_preview";
+        }
+      ];
+    "sublime-text/Packages/User/Default (Linux).sublime-keymap".text =
+      builtins.toJSON [
+        {
+          keys = [ "alt+p" ];
+          command = "open_markdown_preview";
+          context = [
+            {
+              key = "selector";
+              operator = "equal";
+              operand = "text.html.markdown";
+            }
+          ];
+        }
+      ];
   };
 }
