@@ -45,6 +45,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     git.nix                Git config, incl. SSH commit signing via the Bitwarden SSH agent
     gnome.nix              GNOME settings as declarative dconf
     mac-folders.nix        Maps the macOS host's Parallels-shared folders into $HOME
+    markdown-preview.nix   inlyne config + sets it as the default Markdown opener (via xdg-mime, not xdg.mimeApps)
     mounts.nix             sshfs mounts under ~/mounts (systemd user services) + sshmount/sshumount helpers
     music.nix              Music tagging: beets (declarative config) + EasyTAG
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
@@ -82,7 +83,7 @@ function:
 | Core CLI utilities | wget, curl, nano, jq, net-tools, expect, libargon2 |
 | Terminal / shell | eza, btop, zellij, fastfetch, byobu, tmux |
 | File sync & dotfiles | rsync, unison, stow |
-| Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text, Obsidian |
+| Editors & IDEs | JetBrains PyCharm / PhpStorm / WebStorm, Sublime Text, Obsidian, inlyne |
 | Development tooling | jdk, uv, bundler, php (8.5, pinned via `php85`), composer, subversion, jekyll, imagemagick, exiftool, commonmeta, sequoia-cli, commitizen, github-cli, awscli2, claude-code (flake, always-latest), codex |
 | Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, libmysqlclient, mariadb (+ connector headers), postgresql |
 | Web browsers & automation | chromium, tor-browser, puppeteer-cli, chromedriver |
