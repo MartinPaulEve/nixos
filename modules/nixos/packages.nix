@@ -203,6 +203,13 @@ in
     jetbrains.webstorm       # JavaScript / web IDE
     pkgs-insecure.sublime4   # Sublime Text (needs OpenSSL 1.1, see pkgs-insecure)
     obsidian                 # Note-taking app
+    # Markdown preview to sit beside Sublime: inlyne re-renders the file on
+    # every save, is a native (Rust/wgpu) app rather than an Electron one, and
+    # is the default opener for .md files (home/martin/markdown-preview.nix).
+    # Moji (Electron) was tried first and crashed; Apostrophe only offers a
+    # reload prompt when the file changes on disk, so it suits editing in
+    # itself rather than previewing edits made elsewhere.
+    inlyne                   # Markdown viewer with live reload
 
     # --- Development tooling ---
     jdk                      # Java Development Kit
