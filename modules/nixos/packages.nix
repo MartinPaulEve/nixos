@@ -286,6 +286,7 @@ in
     puppeteer-cli            # Headless-Chrome automation CLI (bundles its own Chromium)
     chromedriver             # Add chromedriver for selenium
     tor-browser'             # Tor Browser (official nightly aarch64 build on ARM, see above)
+    lagrange                 # Gemini/Gopher/Finger browser (gmi.skyjake.fi/lagrange)
 
     # --- Networking & VPN ---
     tailscale                # Mesh VPN
