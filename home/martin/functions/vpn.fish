@@ -22,9 +22,27 @@ function vpn
         return 1
     end
 
-    set -l user (op read 'op://BotAccess/Hcommons OpenVPN/username')
-    set -l pass (op read 'op://BotAccess/Hcommons OpenVPN/password')
-    set -l otp (op item get 'Hcommons OpenVPN' --vault='BotAccess' --otp)
+    # Credentials live in the Bitwarden login item "Hcommons OpenVPN"
+    # (username, password and a TOTP seed). Reuse an unlocked BW_SESSION if
+    # the shell already has one; otherwise one master-password prompt
+    # unlocks the CLI vault for all three lookups. Like mounts.nix, this
+    # needs a one-time `bw login` (and `bw sync` after the item changes).
+    set -l item 'Hcommons OpenVPN'
+    set -l session $BW_SESSION
+    if test -z "$session"; or not bw status --session "$session" 2>/dev/null | grep -q '"status":"unlocked"'
+        set session (bw unlock --raw)
+        if test $status -ne 0 -o -z "$session"
+            echo "vpn: bw unlock failed (first use needs a one-time \`bw login\`)" >&2
+            return 1
+        end
+    end
+    set -l user (bw get username $item --session "$session"); or return 1
+    set -l pass (bw get password $item --session "$session"); or return 1
+    set -l otp (bw get totp $item --session "$session"); or return 1
+    if test -z "$user" -o -z "$pass" -o -z "$otp"
+        echo "vpn: Bitwarden item '$item' is missing a username, password or TOTP" >&2
+        return 1
+    end
 
     set -l expfile (mktemp /tmp/vpn-expect.XXXXXX)
     printf '%s\n' \
