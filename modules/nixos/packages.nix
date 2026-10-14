@@ -307,7 +307,15 @@ in
     # startup on this system.
 
     # --- Office & research ---
-    libreoffice-fresh        # Office suite
+    libreoffice-fresh        # Office suite (UI language packs en-GB and en-US are compiled in)
+    # LibreOffice's nixpkgs wrapper adds every profile's share/hunspell and
+    # share/hyphen to DICPATH, so spelling and hyphenation dictionaries are
+    # installed as ordinary system packages. en_GB-ise is the standard -ise
+    # British wordlist; en_GB-large would accept both -ise and -ize.
+    hunspellDicts.en_GB-ise  # British English spelling (LibreOffice, Firefox)
+    hunspellDicts.en_US      # American English spelling
+    hyphenDicts.en_GB        # British English hyphenation
+    hyphenDicts.en_US        # American English hyphenation
     zotero                   # Reference / citation manager
     pdftk                    # PDF manipulation toolkit
 
