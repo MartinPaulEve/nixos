@@ -233,6 +233,7 @@ in
     commitizen               # Conventional-commit helper
     github-cli               # GitHub CLI (`gh`)
     awscli2                  # AWS CLI v2 (`aws`); self-contained, credentials via `aws configure`
+    postman                  # API client (unfree; nixpkgs repackages the upstream Linux build, ARM included)
     # Claude Code comes from the claude-code-nix flake input (see flake.nix),
     # not nixpkgs, so `claude` tracks upstream releases instead of nixpkgs'
     # review queue.
