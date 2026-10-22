@@ -19,6 +19,7 @@ in
   # more IP keys, to extend the list.
   networking.hosts = {
     "54.39.192.206" = [ "reclaim" ];
+    "52.23.70.117" = [ "rcahpoetry.commons.msu.edu" ];
   };
 
   # Tailscale mesh VPN.
