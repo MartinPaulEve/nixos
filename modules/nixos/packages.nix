@@ -245,6 +245,13 @@ in
     mariadb-connector-c      # MariaDB C files
     mariadb-connector-c.dev  # MariaDB C headers
     postgresql               # Postgres
+    # pg_config is NOT in the postgresql package above: nixpkgs splits it into
+    # its own package so the server closure doesn't drag in the -dev output.
+    # Without it, `uv sync` on a project that builds psycopg[c] (or any C
+    # libpq binding) fails with "No such file or directory: 'pg_config'".
+    # This wrapper also references postgresql.dev, so the libpq headers and
+    # library that its --includedir/--libdir report are in the closure too.
+    postgresql.pg_config     # `pg_config` for building psycopg[c] etc.
     stdenv.cc                # Native C/C++ compiler and linker
     gnumake                  # Build toolchain
     binutils
