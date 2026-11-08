@@ -21,5 +21,9 @@
     };
 
     ".ssh/id_ed25519_v2.pub".source = ./ssh/id_ed25519_v2.pub;
+
+    # MSU EC2 host key (RSA). The file already existed in ~/.ssh as a plain
+    # regular file, so Home Manager's backupFileExtension handles it.
+    ".ssh/msu.pub".source = ./ssh/msu.pub;
   };
 }

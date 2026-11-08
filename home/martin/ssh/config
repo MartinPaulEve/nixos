@@ -35,6 +35,13 @@ Host sh
         IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
         IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
 
+Host minidumptruck
+        HostName minidumptruck
+        User ec2-user
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/msu.pub
+
 Host github.com
         HostName github.com
         User MartinPaulEve

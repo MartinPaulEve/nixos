@@ -19,7 +19,9 @@ in
   # more IP keys, to extend the list.
   networking.hosts = {
     "54.39.192.206" = [ "reclaim" ];
-    "52.23.70.117" = [ "rcahpoetry.commons.msu.edu" ];
+    "52.23.70.117" = [ "poetry.rcah.msu.edu" ];
+    "44.216.131.197" = [ "redirectdomain.eve.gd" ];
+    "54.209.18.148" = [ "minidumptruck" ];
   };
 
   # Tailscale mesh VPN.
