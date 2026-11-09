@@ -22,6 +22,7 @@ in
     "52.23.70.117" = [ "poetry.rcah.msu.edu" ];
     "44.216.131.197" = [ "redirectdomain.eve.gd" ];
     "54.209.18.148" = [ "minidumptruck" ];
+    "167.233.74.121" = [ "hetzner-vps" ];
   };
 
   # Tailscale mesh VPN.
