@@ -300,6 +300,7 @@ in
     tailscale                # Mesh VPN
     tailscale-systray        # Tailscale system-tray indicator
     openvpn3                 # OpenVPN 3 client
+    dig                      # DNS lookup tool (BIND's dig, plus nslookup/host)
 
     # --- Security & authentication ---
     _1password-gui           # 1Password desktop app
