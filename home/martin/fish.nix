@@ -24,6 +24,10 @@ in
     #    shell skips the exec and just runs fastfetch. We also bail out when
     #    already inside byobu ($BYOBU_BACKEND) or when there is no controlling
     #    tty (e.g. scp/rsync, editor-embedded shells).
+    #  - NOBYOBU set in the environment is the explicit escape hatch: a plain
+    #    shell with the terminal's own scrollback. The "Ghostty (no byobu)"
+    #    desktop entry and the nobyobu function (see ghostty.nix) set it;
+    #    `NOBYOBU=1 fish` does the same by hand, e.g. over ssh.
     #  - IDE-embedded terminals (JetBrains JediTerm sets $TERMINAL_EMULATOR)
     #    stay plain fish: the IDE opens the shell at the project root and
     #    manages its own tabs, and byobu's F-keys fight the IDE's.
@@ -45,6 +49,7 @@ in
       if status is-interactive
           and not set -q TMUX
           and not set -q BYOBU_BACKEND
+          and not set -q NOBYOBU
           and not string match -q 'JetBrains*' -- "$TERMINAL_EMULATOR"
           and test -t 1
           if test "$PWD" = "$HOME"

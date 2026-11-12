@@ -7,6 +7,7 @@
     ./bitwarden.nix
     ./byobu.nix
     ./fish.nix
+    ./ghostty.nix
     ./git.nix
     ./gnome.nix
     ./mac-folders.nix

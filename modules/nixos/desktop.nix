@@ -22,4 +22,13 @@
 
   # Firefox.
   programs.firefox.enable = true;
+
+  # Default terminal for "Open in Terminal" and for Terminal=true desktop
+  # entries (the xdg-terminal-exec spec, which GLib consults). GNOME ships
+  # Console and would otherwise prefer it; ghostty itself is installed per
+  # user in home/martin/ghostty.nix.
+  xdg.terminal-exec = {
+    enable = true;
+    settings.default = [ "com.mitchellh.ghostty.desktop" ];
+  };
 }

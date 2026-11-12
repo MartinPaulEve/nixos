@@ -278,7 +278,7 @@ with lib.hm.gvariant;
       # longer grab its shortcuts on GNOME 50 and fell over when an entry was
       # clicked.
       enabled-extensions = [ "dash-to-dock@micxgx.gmail.com" "appindicatorsupport@rgcjonas.gmail.com" "clipboard-indicator@tudmotu.com" ];
-      favorite-apps = [ "thunderbird.desktop" "signal.desktop" "org.telegram.desktop" "firefox.desktop" "chromium-browser.desktop" "torbrowser.desktop" "org.gnome.Rhythmbox3.desktop" "org.gnome.Nautilus.desktop" "org.gnome.Console.desktop" "bitwarden.desktop" "webstorm.desktop" "phpstorm.desktop" "pycharm.desktop" "sublime_text.desktop" "zotero.desktop" "calc.desktop" "writer.desktop" "gimp.desktop"];
+      favorite-apps = [ "thunderbird.desktop" "signal.desktop" "org.telegram.desktop" "firefox.desktop" "chromium-browser.desktop" "torbrowser.desktop" "org.gnome.Rhythmbox3.desktop" "org.gnome.Nautilus.desktop" "com.mitchellh.ghostty.desktop" "com.mitchellh.ghostty.plain.desktop" "bitwarden.desktop" "webstorm.desktop" "phpstorm.desktop" "pycharm.desktop" "sublime_text.desktop" "zotero.desktop" "calc.desktop" "writer.desktop" "gimp.desktop"];
     };
 
     "org/gnome/shell/extensions/dash-to-dock" = {

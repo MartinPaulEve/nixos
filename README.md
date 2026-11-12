@@ -15,7 +15,7 @@ modules/
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
     boot.nix               Bootloader, kernel, LUKS, Plymouth splash
-    desktop.nix            X11, GNOME, GNOME Tweaks, Firefox
+    desktop.nix            X11, GNOME, GNOME Tweaks, Firefox, ghostty as the xdg default terminal
     email.nix              Thunderbird + Proton Mail bridge (headless service)
     espanso.nix            uinput access for espanso's Wayland EVDEV injection
     fonts.nix              System fonts, incl. Nerd Fonts
@@ -41,7 +41,8 @@ home/                      Home Manager wiring, attached as a NixOS module
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
     bitwarden.nix          Bitwarden notes only: the app manages its own autostart (a declarative entry breaks it)
     byobu.nix              Byobu backend configuration
-    fish.nix               Fish shell: context-aware byobu launch, fastfetch, autoloaded functions
+    fish.nix               Fish shell: context-aware byobu launch (NOBYOBU escape hatch), fastfetch, autoloaded functions
+    ghostty.nix            Ghostty terminal: large scrollback, plus a "no byobu" desktop entry under its own app class
     git.nix                Git config, incl. SSH commit signing via the Bitwarden SSH agent
     gnome.nix              GNOME settings as declarative dconf
     mac-folders.nix        Maps the macOS host's Parallels-shared folders into $HOME
