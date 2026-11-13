@@ -20,6 +20,7 @@
     ./sqlite-browser.nix
     ./ssh.nix
     ./sublime.nix
+    ./sublime-default.nix
     ./transcribe-client.nix
     ./unison.nix
     ./whipper.nix

@@ -55,6 +55,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     sqlite-browser.nix     Makes DB Browser for SQLite the default opener for SQLite files (via xdg-mime)
     ssh.nix                OpenSSH client config + public keys (verbatim from ssh/)
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned, + the inlyne preview command
+    sublime-default.nix    Sublime Text as the default text-file opener (via xdg-mime, like markdown-preview.nix)
     transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
