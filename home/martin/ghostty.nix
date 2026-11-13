@@ -23,18 +23,25 @@
 # virtio-gpu through Mesa's virgl driver, which stops at OpenGL 4.0 (it lacks
 # shader storage buffers and compute shaders, so faking the version with
 # MESA_GL_VERSION_OVERRIDE would not help). Mesa's llvmpipe software renderer
-# does OpenGL 4.6, so the package below wraps ghostty to run under
-# LIBGL_ALWAYS_SOFTWARE=1. The wrapper has to be reached by every launch
+# does OpenGL 4.6, so on that host the package below wraps ghostty to run
+# under LIBGL_ALWAYS_SOFTWARE=1. The wrapper has to be reached by every launch
 # path, not just the shell: the upstream desktop entry is DBusActivatable and
 # the single-instance process is started from a D-Bus service file and a
 # systemd user unit, all of which carry absolute store paths to the real
 # binary, so those files are rewritten to point at the wrapper. The `env`
 # setting then clears the variable again for the shells ghostty spawns, so
 # GL programs started from a terminal still get the hardware driver.
-{ lib, pkgs, ... }:
+#
+# The wrapper is gated on hardware.parallels.enable (read from the NixOS
+# config via osConfig), so it is inert in the x86 QEMU test VM and on any
+# future bare-metal install: there ghostty is the stock package and renders
+# on the real GPU driver.
+{ lib, pkgs, osConfig, ... }:
 
 let
   plainClass = "com.mitchellh.ghostty.plain";
+
+  softwareGL = osConfig.hardware.parallels.enable;
 
   ghosttySoftwareGL = pkgs.symlinkJoin {
     name = "ghostty-softgl-${pkgs.ghostty.version}";
@@ -63,14 +70,14 @@ in
   programs.ghostty = {
     enable = true;
     enableFishIntegration = true;
-    package = ghosttySoftwareGL;
+    package = if softwareGL then ghosttySoftwareGL else pkgs.ghostty;
 
-    settings = {
+    settings = lib.optionalAttrs softwareGL {
       # Undo the wrapper's LIBGL_ALWAYS_SOFTWARE for child processes (see the
       # header comment). Mesa reads "0" as off; an unset variable is not
       # expressible here.
       env = "LIBGL_ALWAYS_SOFTWARE=0";
-
+    } // {
       # Same face as the rest of the desktop (monospace-font-name in gnome.nix).
       font-family = "CaskaydiaCove Nerd Font Mono";
       font-size = 11;
