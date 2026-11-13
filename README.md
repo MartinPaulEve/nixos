@@ -52,6 +52,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     obsidian.nix           Pinned Obsidian community plugins for the commons-docs vault
     remmina.nix            Pins Remmina's self-created autostart entry to Hidden=true
     shell.nix              Starship prompt + Atuin history
+    sqlite-browser.nix     Makes DB Browser for SQLite the default opener for SQLite files (via xdg-mime)
     ssh.nix                OpenSSH client config + public keys (verbatim from ssh/)
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned, + the inlyne preview command
     transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)

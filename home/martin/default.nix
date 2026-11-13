@@ -17,6 +17,7 @@
     ./obsidian.nix
     ./remmina.nix
     ./shell.nix
+    ./sqlite-browser.nix
     ./ssh.nix
     ./sublime.nix
     ./transcribe-client.nix

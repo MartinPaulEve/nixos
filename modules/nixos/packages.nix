@@ -252,6 +252,7 @@ in
     # This wrapper also references postgresql.dev, so the libpq headers and
     # library that its --includedir/--libdir report are in the closure too.
     postgresql.pg_config     # `pg_config` for building psycopg[c] etc.
+    sqlitebrowser            # DB Browser for SQLite: GUI table/data view, default .sqlite opener (home/martin/sqlite-browser.nix)
     stdenv.cc                # Native C/C++ compiler and linker
     gnumake                  # Build toolchain
     binutils
