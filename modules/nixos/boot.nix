@@ -19,6 +19,9 @@ in
 {
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
+  # Keep the boot menu short; older generations stay in the store (and are
+  # rolled back to with nixos-rebuild) until nix.gc removes them (nix.nix).
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Use the latest kernel.
