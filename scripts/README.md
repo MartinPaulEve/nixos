@@ -13,6 +13,7 @@ directory to `PATH` yourself).
 | Script | What it does | Where to run it |
 |---|---|---|
 | `build_aarch64_mac.sh` | `sudo nixos-rebuild switch --flake <repo>#nixos` — rebuilds and activates the real system. Refuses to run on non-aarch64 machines. | The Mac/Parallels NixOS guest |
+| `update.sh` | Pulls security/package updates and rebuilds: `nix flake update nixpkgs home-manager --commit-lock-file`, then `build_aarch64_mac.sh` if the lock moved, then `nix store diff-closures` against the booted system and a reboot hint if the kernel changed. `--all` updates every input, `INPUT...` only the named ones, `--rebuild` forces a rebuild. Refuses to start with uncommitted `flake.lock` changes. | The Mac/Parallels NixOS guest |
 | `build_x86_vm_spice.sh` | `nix build <repo>#nixosConfigurations.nixos-vm-x86.config.system.build.vm` — builds the test VM runner. Never touches the running system. | Any x86_64 machine with Nix |
 
 ## VM lifecycle

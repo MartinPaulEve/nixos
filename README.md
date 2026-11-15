@@ -69,11 +69,36 @@ home/                      Home Manager wiring, attached as a NixOS module
     whipper/               Whipper config source
 scripts/                   Environment-management commands (on PATH; see scripts/README.md)
   build_aarch64_mac.sh     Rebuild + switch the real system (Mac/Parallels)
+  update.sh                Update nixpkgs + home-manager, rebuild, show what changed
   build_x86_vm_spice.sh    Build the x86_64 SPICE test VM
   vm_start.sh              Start the test VM (headless, SPICE on localhost:5930)
   vm_shutdown.sh           Gracefully shut the test VM down
   spice_vm_connect.sh      Open remote-viewer on the running test VM
 ```
+
+## Keeping up to date
+
+Security fixes reach a NixOS system one way only: the `nixpkgs` input moves to
+a newer commit of the stable branch (`nixos-26.05`, where upstream backports
+patches) and the system is rebuilt. Nothing updates in the background. Run
+`update.sh` about once a week and after any serious CVE; it updates `nixpkgs`
+and `home-manager`, commits the lock, rebuilds, and prints the closure diff
+and whether a reboot is needed for a new kernel. `update.sh --all` also pulls
+the latest `claude-code`, `herdr` and `worksummary`.
+
+Each stable release is supported for about a month after the next one ships
+(releases land in May and November). Moving to a new release means changing
+the `nixpkgs` and `home-manager` branch names in `flake.nix`, then
+`update.sh --rebuild`; try it in the x86 test VM first.
+
+Housekeeping is automatic (`modules/nixos/nix.nix`): a weekly timer deletes
+generations older than 14 days and collects garbage, another hard-links
+duplicate store files, and the boot menu lists the last 10 generations.
+
+Outside the flake: `~/.local/share/mpe-transcribe` is a plain clone
+(`git pull`); `sequoia-cli` and `holos` are hash-pinned in `packages.nix` and
+need manual version bumps; Firefox extensions and `uv`-managed Pythons update
+themselves.
 
 ## Packages
 
