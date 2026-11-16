@@ -116,7 +116,7 @@ function:
 | Build toolchain & C libraries | gcc, gnumake, binutils, cmake, ninja, meson, autoconf, automake, libtool, m4, patch, pkg-config, libmysqlclient, mariadb (+ connector headers), postgresql |
 | Web browsers & automation | chromium, tor-browser, puppeteer-cli, chromedriver |
 | Networking & VPN | tailscale, tailscale-systray, openvpn3, tcpdump |
-| Security & authentication | 1Password (GUI + CLI), Bitwarden (GUI + CLI), yubikey-manager, yubikey-personalization |
+| Security & authentication | 1Password (GUI + CLI), Bitwarden (GUI + CLI), YubiKey tooling (yubikey-manager, pam_u2f, libfido2, Yubico Authenticator, age + age-plugin-yubikey; see docs/yubikey.md) |
 | Office & research | libreoffice-fresh, zotero, pdftk |
 | Graphics & media | audacity, gimp-with-plugins, rhythmbox, vlc, ymuse, yt-dlp |
 | Communication | signal-desktop, telegram-desktop, holos |
