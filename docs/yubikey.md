@@ -6,6 +6,9 @@ becomes inaccessible when the key is on the other desk. Sections 1 to 3
 cover the original tap-to-unlock setup; 4 onwards are the extra things the
 key can do and how they are wired in this configuration.
 
+For a step-by-step checklist, including setting up a second, backup key,
+see [yubikey-usage.md](yubikey-usage.md).
+
 ## 1. Tap-to-unlock for login, sudo, and 1Password
 
 The system is configured in `modules/nixos/security.nix` so that a YubiKey tap works as an **optional first authentication factor**
