@@ -98,6 +98,9 @@ in
       # Closing a window with a live byobu client always asks; that is just
       # a detached session, so skip the prompt.
       confirm-close-surface = false;
+
+      # The theme for the terminal
+      theme = "Apple System Colors Light";
     };
   };
 
