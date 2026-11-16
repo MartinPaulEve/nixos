@@ -310,6 +310,9 @@ in
     bitwarden-cli            # Bitwarden CLI (`bw`)
     yubikey-manager          # YubiKey configuration tool (ykman)
     yubikey-personalization  # YubiKey personalization utilities
+    yubioath-flutter         # Yubico Authenticator: TOTP codes stored on the key
+    age                      # Modern file encryption
+    age-plugin-yubikey       # age identities held in the YubiKey's PIV slots
     # NOTE: no OpenPGP entries are needed here — programs.gnupg.agent
     # (security.nix) installs gnupg itself and runs gpg-agent, GNOME supplies
     # pinentry-gnome3, and pcscd (security.nix) covers smartcard/YubiKey

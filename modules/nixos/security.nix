@@ -41,12 +41,22 @@
   security.pam.u2f = {
     enable = true;
     control = "sufficient";
-    # Print "Please touch the device" when a registered key is waiting.
-    settings.cue = true;
+    settings = {
+      # Print "Please touch the device" when a registered key is waiting.
+      cue = true;
+      # Pin the relying-party identity rather than deriving it from the
+      # hostname at run time: enrolments are bound to this string, so a
+      # hostname change would otherwise silently break them (keys would
+      # "fail" and PAM would fall through to the password every time).
+      origin = "pam://nixos";
+      appid = "pam://nixos";
+    };
   };
 
-  # pamu2fcfg, for enrolling keys into ~/.config/Yubico/u2f_keys.
-  environment.systemPackages = [ pkgs.pam_u2f ];
+  environment.systemPackages = [
+    pkgs.pam_u2f  # pamu2fcfg, for enrolling keys into ~/.config/Yubico/u2f_keys
+    pkgs.libfido2 # fido2-token: set the FIDO2 PIN, list/delete resident SSH keys
+  ];
 
   # GnuPG agent, also acting as the SSH agent.
   programs.gnupg.agent = {

@@ -24,6 +24,7 @@
     ./transcribe-client.nix
     ./unison.nix
     ./whipper.nix
+    ./yubikey.nix
     ./zotero.nix
   ];
 
