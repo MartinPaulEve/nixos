@@ -6,6 +6,23 @@ Host waldorf
 	IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
 	IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
 
+Host hetzner-vps
+        HostName hetzner-vps
+        User martin
+        ForwardAgent yes
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
+
+Host hetzner-sandbox
+        HostName hetzner-sandbox
+        User root
+        Port 22
+        ForwardAgent yes
+        IdentitiesOnly yes
+        IdentityAgent /home/martin/.bitwarden-ssh-agent.sock
+        IdentityFile /home/martin/.ssh/id_ed25519_waldorf.pub
+
 Host v2
         HostName v2
         User martin
