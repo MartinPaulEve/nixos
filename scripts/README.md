@@ -12,7 +12,7 @@ directory to `PATH` yourself).
 
 | Script | What it does | Where to run it |
 |---|---|---|
-| `install.sh` | Turns a base NixOS install into this configuration. Asks for the hostname; finds (or regenerates) the hardware scan; detects the processor, graphics card, install release and EFI partition; carries over disk-encryption settings; writes `hosts/<hostname>/`; checks it evaluates; then offers to build, switch and set the `martin` password. Run as `./scripts/install.sh` from the checkout (it is not on `PATH` yet). `--help` lists a flag for every question. See `AMD64.md`. | A new x86_64 machine, once |
+| `install.sh` | Turns a base NixOS install into this configuration. Asks for the hostname; finds (or regenerates) the hardware scan; detects the processor, graphics card, install release, EFI partition and bootloader (it keeps the one the machine boots with: systemd-boot, or GRUB on a dual-boot machine); carries over disk-encryption settings; writes `hosts/<hostname>/`; checks it evaluates; then offers to build, switch (installing that bootloader as the firmware's first choice) and set the `martin` password. Run as `./scripts/install.sh` from the checkout (it is not on `PATH` yet). `--help` lists a flag for every question. See `AMD64.md`. | A new x86_64 machine, once |
 
 ## Rebuild commands
 

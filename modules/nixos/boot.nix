@@ -1,5 +1,5 @@
 # Bootloader, kernel, and disk decryption.
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   # Vendored "nixos-mac-style" Plymouth theme (macOS-style boot animation with
@@ -17,8 +17,12 @@ let
   '';
 in
 {
-  # Bootloader.
-  boot.loader.systemd-boot.enable = true;
+  # Bootloader: systemd-boot, unless the host opts into GRUB by importing
+  # modules/hardware/grub.nix (a machine that shares its disks with other
+  # operating systems). Whichever it is must be the one the firmware actually
+  # starts: a rebuild only writes new generations into the menu of the
+  # bootloader configured here, so a mismatch boots the old system forever.
+  boot.loader.systemd-boot.enable = lib.mkDefault true;
   # Keep the boot menu short; older generations stay in the store (and are
   # rolled back to with nixos-rebuild) until nix.gc removes them (nix.nix).
   boot.loader.systemd-boot.configurationLimit = 10;
