@@ -281,17 +281,20 @@ in
     # x86_64 via binfmt would work in principle but is a poor trade for a
     # browser, which wants native graphics and CPU.
     #
-    # On an x86_64-linux host, drop Chromium and uncomment the line below
-    # (allowUnfree is already set in modules/nixos/nix.nix, so no extra config
-    # is needed). Chrome's desktop ID is google-chrome.desktop, so the dock
-    # favourites in home/martin/gnome.nix need updating to match.
+    # Chromium is therefore the backup browser on every host, the x86_64
+    # ones included, so all machines carry the same package and the same dock
+    # favourite. Firefox is the principal browser and the default (see
+    # home/martin/browser.nix). Should Chrome itself ever be wanted on an
+    # x86_64 host, it is the line below (allowUnfree is already set in
+    # modules/nixos/nix.nix); its desktop ID is google-chrome.desktop, so the
+    # dock favourites in home/martin/gnome.nix would need to follow.
     #
     #   google-chrome        # Web browser (unfree; desktop ID google-chrome.desktop)
     #
     # If the draw is Google-account sync or Widevine DRM rather than Chrome
     # itself, brave or vivaldi are Chromium-based, build on aarch64-linux, and
     # keep working sync — Google restricts the sync API to official builds.
-    chromium                 # Web browser (desktop ID chromium-browser.desktop)
+    chromium                 # Backup web browser (desktop ID chromium-browser.desktop)
     puppeteer-cli            # Headless-Chrome automation CLI (bundles its own Chromium)
     chromedriver             # Add chromedriver for selenium
     tor-browser'             # Tor Browser (official nightly aarch64 build on ARM, see above)

@@ -5,6 +5,7 @@
   imports = [
     ./avatar.nix
     ./bitwarden.nix
+    ./browser.nix
     ./byobu.nix
     ./fish.nix
     ./ghostty.nix

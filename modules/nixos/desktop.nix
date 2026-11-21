@@ -20,7 +20,7 @@
     variant = "mac";
   };
 
-  # Firefox.
+  # Firefox: the principal browser, and the default (home/martin/browser.nix).
   programs.firefox.enable = true;
 
   # Default terminal for "Open in Terminal" and for Terminal=true desktop
