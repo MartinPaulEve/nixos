@@ -72,7 +72,11 @@ let
 
   userServices = cfg: builtins.attrNames (hm cfg).systemd.user.services;
 
-  systemPkgs = cfg: names cfg.environment.systemPackages;
+  # Minus the filesystem tools, which follow each machine's own disks
+  # (btrfs-progs for a btrfs root, e2fsprogs for ext4): NixOS derives them
+  # from the hardware scan and lists them in system.fsPackages.
+  systemPkgs = cfg:
+    only (names cfg.environment.systemPackages) (names cfg.system.fsPackages);
   userPkgs = cfg: names cfg.users.users.martin.packages;
   # ghostty is the same program on both; the guest wraps it for software GL
   # (home/martin/ghostty.nix), which only changes the derivation name.
@@ -129,7 +133,19 @@ let
       root-not-the-vm-disk =
         metal.fileSystems."/".device != vm.fileSystems."/".device;
       boot-is-efi-vfat = metal.fileSystems."/boot".fsType == "vfat";
-      uefi-systemd-boot = metal.boot.loader.systemd-boot.enable;
+      # Exactly one bootloader, installed as an EFI program: systemd-boot, or
+      # GRUB for a host that imports modules/hardware/grub.nix. Both or
+      # neither would leave a rebuild with no boot menu to write to.
+      one-uefi-bootloader =
+        metal.boot.loader.systemd-boot.enable != metal.boot.loader.grub.enable
+        && (!metal.boot.loader.grub.enable
+          || (metal.boot.loader.grub.efiSupport
+            && metal.boot.loader.grub.device == "nodev"));
+      # Each boot entry keeps a kernel and an initrd on the EFI partition.
+      boot-menu-kept-short =
+        (if metal.boot.loader.grub.enable
+        then metal.boot.loader.grub.configurationLimit
+        else metal.boot.loader.systemd-boot.configurationLimit) <= 10;
       same-kernel-series =
         metal.boot.kernelPackages.kernel.version == vm.boot.kernelPackages.kernel.version;
       # A host that asks for the NVIDIA driver gets all of it: the driver
@@ -206,6 +222,19 @@ let
       amd-microcode = metal.hardware.cpu.amd.updateMicrocode;
       kvm = builtins.elem "kvm-amd" metal.boot.kernelModules;
       nvidia-driver = builtins.elem "nvidia" metal.services.xserver.videoDrivers;
+      systemd-boot = metal.boot.loader.systemd-boot.enable;
+    }
+    # A dual-boot machine whose firmware starts GRUB. If this host went back
+    # to systemd-boot, rebuilds would stop reaching the menu it boots from and
+    # every reboot would land in a stale generation.
+    // lib.optionalAttrs (name == "animal") {
+      boots-with-grub =
+        metal.boot.loader.grub.enable && !metal.boot.loader.systemd-boot.enable;
+      # The same firmware boot entry the base install registered.
+      grub-on-the-efi-partition = metal.boot.loader.efi.efiSysMountPoint == "/boot"
+        && metal.boot.loader.efi.canTouchEfiVariables;
+      other-systems-in-boot-menu = metal.boot.loader.grub.useOSProber;
+      nvidia-open-module = metal.hardware.nvidia.open;
     };
 in
 vmChecks

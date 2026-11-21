@@ -12,6 +12,7 @@
 #   - the graphics card              (NVIDIA driver, Radeon, Intel)
 #   - the release first installed    (system.stateVersion, from /etc/nixos)
 #   - where the EFI partition lives  (and how many boot entries fit on it)
+#   - the bootloader                 (the one the machine boots with today)
 #   - disk-encryption settings that the base install kept outside the scan
 #
 # Nothing is written until every answer is in, and nothing outside this
@@ -23,6 +24,7 @@
 #   --cpu amd|intel|none
 #   --gpu nvidia|nvidia-open|amd|intel|none
 #   --state-version XX.YY
+#   --bootloader systemd-boot|grub
 #   --yes                    accept the detected answer to anything not given
 #   --force                  replace an existing hosts/NAME
 #   --no-verify              do not check that the new host evaluates
@@ -37,13 +39,14 @@ ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 ETC_NIXOS="${INSTALL_ETC_NIXOS:-/etc/nixos}"
 SYSFS="${INSTALL_SYSFS:-/sys}"
 CPUINFO="${INSTALL_CPUINFO:-/proc/cpuinfo}"
+CMDLINE="${INSTALL_CMDLINE:-/proc/cmdline}"
 ARCH="${INSTALL_ARCH:-$(uname -m)}"
 
 # The base install usually has not enabled flakes yet.
 export NIX_CONFIG="experimental-features = nix-command flakes${NIX_CONFIG:+
 $NIX_CONFIG}"
 
-HOST="" HWCONFIG="" CPU="" GPU="" STATE_VERSION=""
+HOST="" HWCONFIG="" CPU="" GPU="" STATE_VERSION="" BOOTLOADER=""
 YES=0 FORCE=0 VERIFY=1 BUILD=1
 HOST_GIVEN=0
 
@@ -56,6 +59,7 @@ while [ "$#" -gt 0 ]; do
     --cpu) CPU="${2-}"; shift 2 ;;
     --gpu) GPU="${2-}"; shift 2 ;;
     --state-version) STATE_VERSION="${2-}"; shift 2 ;;
+    --bootloader) BOOTLOADER="${2-}"; shift 2 ;;
     --yes) YES=1; shift ;;
     --force) FORCE=1; shift ;;
     --no-verify) VERIFY=0; shift ;;
@@ -100,11 +104,14 @@ confirm() {
 [ "$ARCH" = "x86_64" ] || die "this sets up an x86_64 machine; this one is $ARCH.
        (The aarch64 Parallels guest is hosts/nixos and needs no installer.)"
 
-# modules/nixos/boot.nix boots with systemd-boot, which is UEFI-only. On a
-# machine booted in legacy BIOS mode the switch would leave it unbootable.
+# Both bootloaders this configuration offers (systemd-boot in
+# modules/nixos/boot.nix, GRUB in modules/hardware/grub.nix) are installed as
+# EFI programs. On a machine booted in legacy BIOS mode the switch would
+# leave it unbootable.
 [ -d "$SYSFS/firmware/efi" ] || die "this machine was not booted in UEFI mode.
-       The configuration boots with systemd-boot, which needs UEFI. Reinstall
-       the base system in UEFI mode (and disable CSM/legacy boot) first."
+       The configuration installs its bootloader on an EFI system partition,
+       which needs UEFI. Reinstall the base system in UEFI mode (and disable
+       CSM/legacy boot) first."
 
 if [ -e "$ROOT/.git" ] && ! command -v git >/dev/null; then
   die "git is needed (Nix reads this repository through it). Re-run as:
@@ -282,6 +289,53 @@ if [[ "$esp_mb" =~ ^[0-9]+$ ]]; then
   note "Size: ${esp_mb} MiB${BOOT_ENTRIES:+ — small, so only $BOOT_ENTRIES boot entries will be kept}"
 fi
 
+# --- Bootloader ------------------------------------------------------------------
+
+section "Bootloader"
+note "The firmware starts one bootloader, and a rebuild adds new generations"
+note "only to the menu of the bootloader this configuration manages. They"
+note "must be the same one, or every reboot lands in the old system."
+note "  systemd-boot  the usual choice; its menu lists NixOS only"
+note "  grub          also lists the other operating systems on this machine"
+note "                (Windows, other Linux installs), for a shared disk"
+BASECONF="$ETC_NIXOS/configuration.nix"
+
+# Does the base configuration turn GRUB on? It can be written either as
+# `boot.loader.grub.enable = true;` or inside a `boot.loader.grub = { … };`.
+base_enables_grub() {
+  local block
+  [ -r "$BASECONF" ] || return 1
+  if grep -qE '^[[:space:]]*boot\.loader\.grub\.enable[[:space:]]*=[[:space:]]*true' "$BASECONF"; then
+    return 0
+  fi
+  block="$(sed -n '/^[[:space:]]*boot\.loader\.grub[[:space:]]*=[[:space:]]*{/,/}[[:space:]]*;/p' "$BASECONF")"
+  grep -qE '^[[:space:]]*enable[[:space:]]*=[[:space:]]*true' <<< "$block"
+}
+
+# GRUB hands the kernel it starts a BOOT_IMAGE= parameter and systemd-boot
+# does not, so the kernel command line says what really booted this machine,
+# whatever configuration.nix claims. Failing that, go by the base config.
+if grep -qE '(^|[[:space:]])BOOT_IMAGE=' "$CMDLINE" 2>/dev/null; then
+  detected_bl=grub
+  note "Detected: grub (it started the system that is running now)"
+elif base_enables_grub; then
+  detected_bl=grub
+  note "Detected: grub (enabled in $BASECONF)"
+else
+  detected_bl=systemd-boot
+  note "Detected: systemd-boot"
+fi
+ask BOOTLOADER "Bootloader (systemd-boot / grub)" "$detected_bl"
+case "$BOOTLOADER" in
+  systemd-boot|grub) ;;
+  *) die "--bootloader must be systemd-boot or grub (got '$BOOTLOADER')." ;;
+esac
+if [ "$BOOTLOADER" != "$detected_bl" ]; then
+  warn "this machine boots with $detected_bl today. The first switch installs"
+  warn "$BOOTLOADER and makes it the firmware's first choice; the old"
+  warn "$detected_bl entry stays in the firmware boot menu but is no longer updated."
+fi
+
 # --- Settings the base install kept outside the scan ---------------------------
 
 # The graphical installer writes some disk-encryption settings (extra LUKS
@@ -289,7 +343,6 @@ fi
 # the hardware scan. This configuration replaces configuration.nix, so
 # without them the machine would not find its encrypted disks at boot.
 CARRIED=""
-BASECONF="$ETC_NIXOS/configuration.nix"
 if [ -r "$BASECONF" ]; then
   luks="$(grep -E '^[[:space:]]*boot\.initrd\.luks\.devices\."[^"]+"[^;]*;[[:space:]]*$' "$BASECONF" || true)"
   secrets="$(sed -n '/^[[:space:]]*boot\.initrd\.secrets[[:space:]]*=[[:space:]]*{/,/};/p' "$BASECONF")"
@@ -312,12 +365,6 @@ if [ -r "$BASECONF" ]; then
     section "Disk encryption"
     note "Carrying these over from $BASECONF:"
     echo "$CARRIED" | sed '/^$/d; s/^/    /'
-  fi
-  if grep -qE '^[[:space:]]*boot\.loader\.grub\.(enable|device)' "$BASECONF"; then
-    section "Bootloader"
-    warn "the base install boots with GRUB. This configuration installs"
-    warn "systemd-boot on the EFI partition instead; the old GRUB entry stays"
-    warn "in the firmware boot menu but is no longer updated."
   fi
 fi
 
@@ -364,6 +411,14 @@ if [ "$CPU" = none ]; then
   hardware.enableRedistributableFirmware = true;
 "
 fi
+if [ "$BOOTLOADER" = grub ]; then
+  imports="$imports
+    ../../modules/hardware/grub.nix"
+  describe="$describe, GRUB bootloader"
+  entries_setting="boot.loader.grub.configurationLimit = $BOOT_ENTRIES;"
+else
+  entries_setting="boot.loader.systemd-boot.configurationLimit = lib.mkForce $BOOT_ENTRIES;"
+fi
 if [ "$ESP" != /boot ]; then
   body="$body
   # This machine mounts its EFI system partition here rather than at /boot.
@@ -374,7 +429,7 @@ if [ -n "$BOOT_ENTRIES" ]; then
   body="$body
   # The EFI system partition is small (${esp_mb} MiB): keep fewer boot
   # entries than the shared default so a rebuild can never fill it.
-  boot.loader.systemd-boot.configurationLimit = lib.mkForce $BOOT_ENTRIES;
+  $entries_setting
 "
 fi
 if [ -n "$CARRIED" ]; then
@@ -443,7 +498,9 @@ next_steps() {
   else
     note "Build and switch when ready (as a user who can sudo):"
     note "  sudo NIX_CONFIG='experimental-features = nix-command flakes' \\"
-    note "    nixos-rebuild switch --flake $ROOT#$HOST"
+    note "    nixos-rebuild switch --install-bootloader --flake $ROOT#$HOST"
+    note "(--install-bootloader, this first time only: it installs $BOOTLOADER"
+    note "and makes it the bootloader the firmware starts.)"
     note "then, if the martin account is new:  sudo passwd martin"
   fi
   note "After the first boot, rebuild with build_amd64_metal.sh and update"
@@ -455,8 +512,9 @@ if [ "$BUILD" != 1 ]; then next_steps written; exit 0; fi
 
 section "Build and switch"
 note "This downloads the system (around 9 GiB the first time), compiles the"
-note "graphics driver, and switches this machine to it. The current system"
-note "stays in the boot menu as a fallback."
+note "graphics driver, and switches this machine to it. It also installs"
+note "$BOOTLOADER and makes it the bootloader the firmware starts. The"
+note "current system stays in the boot menu as a fallback."
 if ! id martin >/dev/null 2>&1; then
   note "The configuration's user is 'martin', which does not exist here yet."
   note "You will be asked to choose its password straight after the switch."
@@ -470,9 +528,15 @@ if ! confirm "Build and switch now?"; then next_steps written; exit 0; fi
 # One root shell for the switch and everything after it. The switch removes
 # accounts the new configuration does not declare — possibly the one running
 # this script — after which a fresh `sudo` would no longer work.
+#
+# --install-bootloader, on this first switch only: a plain switch updates a
+# bootloader that is already there but leaves the firmware's boot order
+# alone, so a machine could go on starting a bootloader this configuration
+# no longer updates — and with it the old system. Installing puts the chosen
+# one first. Later rebuilds (build_amd64_metal.sh) do not need it.
 sudo env NIX_CONFIG="$NIX_CONFIG" ROOT="$ROOT" HOST="$HOST" REPO_HOME="$REPO_HOME" \
   bash -euc '
-    nixos-rebuild switch --flake "$ROOT#$HOST"
+    nixos-rebuild switch --install-bootloader --flake "$ROOT#$HOST"
 
     # A new account has no password, and the login screen refuses those.
     if [ "$(passwd -S martin 2>/dev/null | cut -d" " -f2)" != P ]; then

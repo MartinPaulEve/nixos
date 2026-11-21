@@ -21,13 +21,14 @@ hosts/                     One directory per machine; the directory name is the 
     default.nix            Picks the hardware profiles this machine needs
     hardware-configuration.nix  Placeholder until regenerated on the machine at install time
 modules/
-  hardware/                Opt-in hardware profiles, imported by the hosts that need them
+  hardware/                Opt-in machine profiles, imported by the hosts that need them
     amd.nix                AMD CPU: microcode, firmware, KVM, fwupd
+    grub.nix               GRUB instead of systemd-boot, listing other operating systems (dual-boot machines)
     intel.nix              Intel CPU: the same
     nvidia.nix             NVIDIA card on NVIDIA's driver: modesetting, suspend, early KMS
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
-    boot.nix               Bootloader, kernel, LUKS, Plymouth splash
+    boot.nix               Bootloader (systemd-boot unless the host imports grub.nix), kernel, Plymouth splash
     desktop.nix            X11, GNOME, GNOME Tweaks, Firefox, ghostty as the xdg default terminal
     email.nix              Thunderbird + Proton Mail bridge (headless service)
     espanso.nix            uinput access for espanso's Wayland EVDEV injection
@@ -305,6 +306,22 @@ Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
 and the Proton Mail bridge. The bridge runs as a per-user systemd service using
 the headless `protonmail-bridge` build with `--noninteractive --no-window`,
 avoiding the GUI build that otherwise crashes at login.
+
+The bootloader is systemd-boot (`modules/nixos/boot.nix`), except on a host
+that imports `modules/hardware/grub.nix`: that one boots with GRUB, whose menu
+also lists the other operating systems on the machine (found by `os-prober` on
+every rebuild). `install.sh` picks whichever the machine already boots with.
+The two must agree, because a rebuild adds new generations only to the menu of
+the bootloader the configuration manages. **If a rebuild succeeds but a reboot
+comes back in the old system** (old kernel, no graphics driver, `readlink
+/run/booted-system` differing from `readlink /run/current-system` straight
+after booting), the firmware is starting the other bootloader. `bootctl
+status` lists the firmware's boot entries in order, and `grep -c BOOT_IMAGE
+/proc/cmdline` prints 1 when GRUB started the running system. Either import
+`grub.nix` in the host (or remove it) to match, or switch the firmware over
+once with `sudo nixos-rebuild switch --install-bootloader --flake
+~/nixos#$(hostname)`, which installs the configured bootloader and puts it
+first in the boot order.
 
 Boot uses a graphical Plymouth splash (`modules/nixos/boot.nix`), with the
 console quietened via `quiet`/`splash` kernel params so the splash shows in

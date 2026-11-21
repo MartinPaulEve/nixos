@@ -42,7 +42,13 @@ booted on AMD hardware yet.
   encrypted disks, small and oddly mounted EFI partitions) and checks what the
   resulting host evaluates to. Its interactive prompts were exercised by hand.
 - **Not verified.** The script's final build-and-switch step, which needs a
-  real machine.
+  real machine. That includes `--install-bootloader` on the first switch,
+  added after `animal` was found booting a stale GRUB menu (see "Installing
+  on a machine").
+- **Verified on `animal`** (AMD CPU, RTX 50-series card, dual boot with
+  Windows and Ubuntu): the system builds with GRUB as its bootloader, with
+  the same firmware entry (`NixOS-boot`) the base install registered, and the
+  installer detects GRUB there from the kernel command line.
 - **Placeholder.** `hosts/nixos-amd64/hardware-configuration.nix` is a
   stand-in. Real machines get their own host directory from `install.sh`.
 
@@ -57,6 +63,11 @@ booted on AMD hardware yet.
   QEMU test VM runs accelerated, and `fwupd` for firmware updates.
 - `modules/hardware/intel.nix` is the same for an Intel processor, so the
   installer has a profile for either.
+- `modules/hardware/grub.nix` is the GRUB profile, for a machine that shares
+  its disks with other operating systems: GRUB installed as an EFI program,
+  `os-prober` adding the other systems to its menu, and the same ten-entry
+  limit as systemd-boot. A host that imports it boots with GRUB instead of
+  the shared default.
 - `scripts/install.sh` sets a machine up from a base NixOS install; see
   "Installing on a machine". `tests/install_test.sh` tests it.
 - `modules/hardware/nvidia.nix` is the NVIDIA profile: NVIDIA's own driver,
@@ -115,6 +126,8 @@ groups, locale, keyboard, firewall or PAM settings.
 | Guest tools | `prl-tools`, `prltoolsd` | none |
 | Graphics driver | `virtio_gpu` | NVIDIA (`nvidia-x11`, `nvidia-settings`, suspend units, `acpid`) |
 | Clock | kept by the Mac host | `systemd-timesyncd` |
+| Bootloader | systemd-boot | systemd-boot, or GRUB on a host that imports `grub.nix` |
+| Filesystem tools | for the guest's ext4 disk | for the machine's own filesystems (`btrfs-progs` on btrfs, …) |
 | CPU microcode, device firmware | none | AMD microcode, redistributable firmware |
 | File indexer (`localsearch`) | off | on (stock GNOME) |
 | `powertop` auto-tuning | on | off |
@@ -166,9 +179,11 @@ The supported route is: put a plain NixOS install on the machine, then let
 `scripts/install.sh` turn it into this configuration.
 
 1. **Install NixOS normally** from the official x86_64 installer, in UEFI
-   mode with Secure Boot off (the configuration boots with systemd-boot,
-   which is unsigned). Any disk layout, with or without encryption. The
-   username and hostname you choose there do not matter.
+   mode with Secure Boot off (the bootloaders this configuration installs,
+   systemd-boot and GRUB, are unsigned). Any disk layout, with or without
+   encryption. The username and hostname you choose there do not matter. On
+   a machine that also runs Windows or another Linux, set the base install
+   up with GRUB if you want those in the boot menu; the script keeps it.
 2. **Get this repository onto it** and run the installer script:
 
    ```sh
@@ -188,6 +203,7 @@ The script asks for, or detects and asks you to confirm:
 | NVIDIA kernel module | asks: `nvidia` (proprietary) or `nvidia-open` (required for RTX 50) | `hardware.nvidia.open` |
 | Release first installed | `system.stateVersion` in `/etc/nixos/configuration.nix` | `system.stateVersion` |
 | EFI partition | the vfat filesystem in the scan, and its size | mount point if not `/boot`; fewer boot entries if under 1 GiB |
+| Bootloader | GRUB if it started the running system (`BOOT_IMAGE=` on the kernel command line) or the base `configuration.nix` enables it; otherwise systemd-boot | imports `grub.nix` for GRUB |
 | Disk encryption | LUKS lines the base install wrote to `configuration.nix` instead of the scan | copied into the host file |
 
 It refuses to go on if the machine was not booted in UEFI mode, if the
@@ -212,8 +228,20 @@ Two things to know about the switch:
 - The account you created during the base install is removed if it is not
   `martin`, because the configuration does not declare it. Its home
   directory is left in place.
-- If the base install used GRUB, systemd-boot replaces it. The old GRUB
-  entry stays in the firmware's boot menu but is no longer updated.
+- The bootloader stays the one the machine already boots with, unless you
+  answer otherwise (`--bootloader systemd-boot|grub`). This first switch
+  runs with `--install-bootloader`, which installs that bootloader and puts
+  it first in the firmware's boot order; later rebuilds do not need it. If
+  you change bootloader, the old one's entry stays in the firmware's boot
+  menu but is no longer updated.
+
+The reason for the care: the firmware goes on starting whichever bootloader
+is first in its boot order, and a rebuild writes new generations only into
+the menu of the bootloader the configuration manages. When the two differ,
+every rebuild appears to work and every reboot comes back in the old system.
+That happened on `animal`, whose base install booted with GRUB while the
+configuration managed systemd-boot. The README's boot section says how to
+recognise and fix it.
 
 Every question has a flag (`install.sh --help`), so the script can also be
 run unattended, and re-run with `--hostname <name> --force` to regenerate a
@@ -273,6 +301,10 @@ Settled:
   ships no ARM Linux build of Chrome, so Chromium is the one browser that
   keeps the package set and the dock identical everywhere.
 - **Hostnames.** Taken from the host directory, as described above.
+- **Bootloader.** systemd-boot by default; GRUB with `os-prober` on a machine
+  that shares its disks with other operating systems, by importing
+  `modules/hardware/grub.nix` from its host file. `os-prober` runs at every
+  rebuild, so a system installed later appears after the next one.
 
 One NVIDIA setting depends on the exact card, which I do not know:
 
@@ -326,6 +358,7 @@ For a new hardware-specific setting, follow the existing pattern:
   (`osConfig.hardware.parallels.enable` in Home Manager modules).
 - Something a kind of hardware needs: put it in a profile under
   `modules/hardware/` and import it from the hosts that have that hardware.
+  The bootloader choice (`grub.nix`) works the same way.
 - Something one machine alone needs: put it in that host's `default.nix`.
 - A package that differs by architecture: branch on
   `pkgs.stdenv.hostPlatform.isx86_64`, as Tor Browser and Holos do.

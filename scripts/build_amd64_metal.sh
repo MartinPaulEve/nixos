@@ -27,4 +27,6 @@ if [ ! -d "$ROOT/hosts/$HOST" ]; then
   exit 1
 fi
 
+echo "Executing: sudo nixos-rebuild switch --flake $ROOT#$HOST"
+
 exec sudo nixos-rebuild switch --flake "$ROOT#$HOST"
