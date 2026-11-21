@@ -25,7 +25,7 @@ in
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Use the latest kernel.
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Graphical boot splash (also themes the LUKS unlock prompt).
   boot.plymouth = {
