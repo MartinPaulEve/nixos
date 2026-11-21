@@ -1,24 +1,29 @@
 # NixOS configuration
 
-Flake-based NixOS configuration for two machines that share one set of modules
-and one home directory configuration: `nixos`, an aarch64 Parallels guest on a
-Mac, and `nixos-amd64`, a bare-metal AMD (x86_64) machine. This repository is
-the source of truth — rebuild directly from here. [`AMD64.md`](AMD64.md) covers
-the bare-metal host: what differs, how to install it, and what state has to be
-carried across by hand.
+Flake-based NixOS configuration for several machines that share one set of
+modules and one home directory configuration. Each directory under `hosts/` is
+a machine, named after its hostname: `nixos`, an aarch64 Parallels guest on a
+Mac, and `nixos-amd64`, a bare-metal x86_64 machine with an AMD processor and
+an NVIDIA card. This repository is the source of truth — rebuild directly from
+here. [`AMD64.md`](AMD64.md) covers the bare-metal side: what differs, how to
+install it, how to add or rename a machine, and what state has to be carried
+across by hand.
 
 ## Layout
 
 ```
-flake.nix                  Flake inputs (nixpkgs, home-manager, herdr, worksummary, claude-code) and outputs
-hosts/
+flake.nix                  Flake inputs (nixpkgs, home-manager, herdr, worksummary, claude-code); one output per hosts/ directory
+hosts/                     One directory per machine; the directory name is the hostname
   nixos/                   The aarch64 Parallels guest
-    default.nix            Host entry point: hardware scan + host identity + virtio early KMS
+    default.nix            Hardware scan + virtio early KMS
     hardware-configuration.nix
-  nixos-amd64/             The bare-metal AMD machine (see AMD64.md)
-    default.nix            Host entry point: host identity + AMD microcode, firmware, KVM, early KMS, fwupd
+  nixos-amd64/             Bare metal: AMD CPU + NVIDIA card (see AMD64.md); copy it to add a machine
+    default.nix            Picks the hardware profiles this machine needs
     hardware-configuration.nix  Placeholder until regenerated on the machine at install time
 modules/
+  hardware/                Opt-in hardware profiles, imported by the hosts that need them
+    amd.nix                AMD CPU: microcode, firmware, KVM, fwupd
+    nvidia.nix             NVIDIA card on NVIDIA's driver: modesetting, suspend, early KMS
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
     boot.nix               Bootloader, kernel, LUKS, Plymouth splash
@@ -47,6 +52,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     default.nix
     avatar.nix             Profile picture (~/.face); image in avatar.jpg
     bitwarden.nix          Bitwarden notes only: the app manages its own autostart (a declarative entry breaks it)
+    browser.nix            Firefox as the default browser (via xdg-mime); Chromium is the backup
     byobu.nix              Byobu backend configuration
     fish.nix               Fish shell: context-aware byobu launch (NOBYOBU escape hatch), fastfetch, autoloaded functions
     ghostty.nix            Ghostty terminal: large scrollback, plus a "no byobu" desktop entry under its own app class
@@ -75,10 +81,10 @@ home/                      Home Manager wiring, attached as a NixOS module
     unison/                Unison profile source
     whipper/               Whipper config source
 tests/
-  hosts.nix                Evaluation-only checks that both hosts stay in step (run via check_hosts.sh)
+  hosts.nix                Evaluation-only checks that all hosts stay in step (run via check_hosts.sh)
 scripts/                   Environment-management commands (on PATH; see scripts/README.md)
   build_aarch64_mac.sh     Rebuild + switch the Mac/Parallels guest
-  build_amd64_metal.sh     Rebuild + switch the bare-metal AMD machine
+  build_amd64_metal.sh     Rebuild + switch a bare-metal machine (output chosen by hostname)
   update.sh                Update nixpkgs + home-manager, rebuild this machine, show what changed
   check_hosts.sh           Check the two hosts still evaluate to the same packages and home
   build_x86_vm_spice.sh    Build the x86_64 SPICE test VM
@@ -312,16 +318,17 @@ driver only loads seconds into stage-2 boot; that framebuffer handoff hides the
 splash. The driver is therefore loaded early via `boot.initrd.kernelModules`.
 **This value is machine-specific, so it is set per host**, not in `boot.nix`:
 the Parallels guest (`hosts/nixos/default.nix`) and the QEMU test VM
-(`modules/nixos/vm.nix`) use the paravirtualised `virtio_gpu`; the bare-metal
-AMD machine (`hosts/nixos-amd64/default.nix`) uses `amdgpu`, via
-`hardware.amdgpu.initrd.enable`. For other hardware:
+(`modules/nixos/vm.nix`) use the paravirtualised `virtio_gpu`; hosts with an
+NVIDIA card get NVIDIA's modules from `modules/hardware/nvidia.nix`. For other
+hardware:
 
 | Hardware | initrd module |
 | --- | --- |
 | Parallels / QEMU / KVM guest | `virtio_gpu` |
 | Intel graphics | `i915` |
 | AMD graphics | `amdgpu` |
-| NVIDIA (open) | `nouveau` |
+| NVIDIA (NVIDIA's driver) | `nvidia`, `nvidia_modeset`, `nvidia_uvm`, `nvidia_drm` |
+| NVIDIA (`nouveau`) | `nouveau` |
 | Apple Silicon (bare metal) | `appledrm` / DCP stack |
 
 Loading a driver with no matching device is harmless (it finds nothing and
@@ -498,19 +505,20 @@ The aarch64 Parallels guest on the Mac:
 build_aarch64_mac.sh        # sudo nixos-rebuild switch --flake ~/nixos#nixos
 ```
 
-The bare-metal AMD machine (first-time installation is in `AMD64.md`):
+A bare-metal machine (first-time installation is in `AMD64.md`); the flake
+output is the machine's hostname, which is its directory name under `hosts/`:
 
 ```sh
-build_amd64_metal.sh        # sudo nixos-rebuild switch --flake ~/nixos#nixos-amd64
+build_amd64_metal.sh        # sudo nixos-rebuild switch --flake ~/nixos#$(hostname)
 ```
 
 Each script refuses to run on the wrong architecture, and `update.sh` picks
 the right one for the machine it is run on. Update inputs with
 `nix flake update` (commit the resulting `flake.lock`).
 
-The two machines are meant to stay the same system. After changing anything
-that might be hardware-specific, run `check_hosts.sh` on either machine: it
-evaluates both hosts (building nothing) and checks they still have the same
+All the machines are meant to stay the same system. After changing anything
+that might be hardware-specific, run `check_hosts.sh` on any machine: it
+evaluates every host (building nothing) and checks they still have the same
 packages, home files, user services and settings, apart from a short,
 explicit list of differences in `tests/hosts.nix`.
 
@@ -530,5 +538,5 @@ vm_shutdown.sh              # graceful ACPI power-off
 ```
 
 None of this affects the real systems: the VM variant and the `nixos-vm-x86`
-output evaluate separately, and the `nixos` and `nixos-amd64` outputs'
-derivations are unchanged by them.
+output evaluate separately, and the real hosts' derivations are unchanged by
+them.

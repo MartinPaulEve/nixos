@@ -1,16 +1,19 @@
 # Running this configuration on a bare-metal AMD machine
 
-This repository now builds two real machines from one set of modules:
+This repository builds any number of real machines from one set of modules.
+Each machine is a directory under `hosts/`, and the directory's name is the
+machine's hostname:
 
-| Flake output | Machine | Architecture | Rebuild with |
+| Host directory | Machine | Architecture | Rebuild with |
 | --- | --- | --- | --- |
-| `nixos` | Parallels guest on the Mac | aarch64 | `build_aarch64_mac.sh` |
-| `nixos-amd64` | Bare-metal AMD desktop/laptop | x86_64 | `build_amd64_metal.sh` |
+| `hosts/nixos` | Parallels guest on the Mac | aarch64 | `build_aarch64_mac.sh` |
+| `hosts/nixos-amd64` | Bare metal, AMD CPU, NVIDIA card | x86_64 | `build_amd64_metal.sh` |
+| `hosts/<your-name>` | Any further machine (see below) | x86_64 | `build_amd64_metal.sh` |
 
-Both import the same `modules/nixos` and the same `home/`, so they get the same
-packages and the same home directory configuration. Anything that only makes
-sense on one of them is gated, and a set of checks (`check_hosts.sh`) fails if
-the two drift apart.
+Every host gets the same `modules/nixos` and the same `home/`, so they all
+have the same packages and the same home directory configuration. Anything
+that only makes sense on one kind of hardware is gated, and a set of checks
+(`check_hosts.sh`) fails if any host drifts from the others.
 
 ## Status: what has and has not been verified
 
@@ -21,15 +24,19 @@ booted on AMD hardware yet.
   package in the configuration exists for x86_64. The third-party flake inputs
   (`claude-code`, `herdr`, `worksummary`) all publish x86_64 packages. The
   x86_64 Holos AppImage hash in `packages.nix` matches the file upstream
-  serves today. All 46 parity checks pass.
+  serves today. The NVIDIA driver (595.71.05) is not marked broken for the
+  configured kernel (7.3.4). All parity checks pass, and a throwaway second
+  host directory was picked up and passed the same checks with no other edits.
 - **Verified.** The Parallels guest is unchanged. Comparing the `nixos` system
   derivation before and after this work, the only difference is the path of
   the repository source itself; no package, unit, file or setting changed.
 - **Not verified.** That the system builds and boots on the real machine. A
   dry run shows about 2,900 paths coming from the binary cache (8.8 GiB) and
   about 1,100 small local derivations (wrappers, config files, unit files).
-  The only real compilation is the same as on the guest: `herdr` (Rust),
-  `commonmeta` (Go) and the Jekyll gems.
+  The real compilation is `herdr` (Rust), `commonmeta` (Go) and the Jekyll
+  gems, as on the guest, plus the NVIDIA kernel module, which is unfree and
+  so never in the binary cache. It compiles in a few minutes and again on
+  every kernel update.
 - **Placeholder.** `hosts/nixos-amd64/hardware-configuration.nix` is a
   stand-in, because the real one can only be generated on the machine. See the
   install steps.
@@ -38,27 +45,31 @@ booted on AMD hardware yet.
 
 ### New
 
-- `hosts/nixos-amd64/default.nix` is the host entry point. It sets the
-  hostname and the things real AMD hardware needs:
-  - AMD CPU microcode updates.
-  - Redistributable firmware (Radeon graphics, Wi-Fi and Bluetooth chips).
-  - The `kvm-amd` module, so the QEMU test VM runs accelerated.
-  - Early KMS for Radeon graphics (`hardware.amdgpu.initrd.enable`), so the
-    Plymouth splash appears properly. This is the counterpart of `virtio_gpu`
-    on the guest.
-  - `fwupd`, for firmware updates to the board, SSD and peripherals.
+- `hosts/nixos-amd64/` is the first bare-metal host. Its `default.nix` only
+  picks hardware profiles and records the install release.
+- `modules/hardware/amd.nix` is the AMD processor profile: CPU microcode,
+  redistributable firmware (Wi-Fi, Bluetooth), the `kvm-amd` module so the
+  QEMU test VM runs accelerated, and `fwupd` for firmware updates.
+- `modules/hardware/nvidia.nix` is the NVIDIA profile: NVIDIA's own driver,
+  kernel modesetting (GNOME on Wayland needs it), video-memory save and
+  restore across suspend, the `nvidia-settings` panel, and the driver loaded
+  in the initrd so the Plymouth splash draws on the card from the start. The
+  `nouveau` driver is blacklisted automatically.
 - `hosts/nixos-amd64/hardware-configuration.nix` is the placeholder hardware
   scan. It mounts root and `/boot` by filesystem label (`nixos` and `boot`).
-- `flake.nix` gains the `nixos-amd64` output.
-- `scripts/build_amd64_metal.sh` rebuilds and switches the bare-metal machine.
-  It refuses to run on anything but x86_64.
+- `flake.nix` now turns every directory under `hosts/` into a flake output
+  and sets its hostname from the directory name.
+- `home/martin/browser.nix` declares Firefox as the default browser.
+- `scripts/build_amd64_metal.sh` rebuilds and switches whichever bare-metal
+  machine it is run on. It refuses to run on anything but x86_64.
 - `tests/hosts.nix` and `scripts/check_hosts.sh` are the parity checks.
 
 ### Changed so that Parallels-only settings stay on Parallels
 
 | File | Before | Now |
 | --- | --- | --- |
-| `modules/nixos/boot.nix` | Loaded `virtio_gpu` in the initrd on every host | Driver is chosen per host: `virtio_gpu` in `hosts/nixos` and in the test VM (`vm.nix`), `amdgpu` in `hosts/nixos-amd64` |
+| `modules/nixos/boot.nix` | Loaded `virtio_gpu` in the initrd on every host | Driver is chosen per host: `virtio_gpu` in `hosts/nixos` and in the test VM (`vm.nix`), the NVIDIA modules via `modules/hardware/nvidia.nix` |
+| `hosts/nixos/default.nix` | Imported the shared modules and set the hostname itself | Hardware only; `flake.nix` supplies the shared modules and the hostname for every host |
 | `home/martin/gnome.nix` | Pinned `~/.config/monitors.xml` to the virtual 1440x900 display everywhere | Only on the Parallels guest and the test VM |
 | `home/martin/obsidian.nix` | Vault path fixed at the Parallels share | Share path on the guest; `~/Documents/Programming/MESH/commons-docs` elsewhere |
 | `scripts/update.sh` | Always called `build_aarch64_mac.sh` | Calls the build script for the machine's architecture |
@@ -83,7 +94,7 @@ architecture, and need no change:
 - `modules/nixos/packages.nix`: Tor Browser (stable release on x86_64, nightly
   ARM build on the guest) and Holos (per-architecture AppImage).
 
-## How the two machines differ
+## How the guest and a bare-metal host differ
 
 This is the complete list. The checks in `tests/hosts.nix` fail if anything
 else differs in packages, fonts, home files, user services, dconf settings,
@@ -91,9 +102,11 @@ groups, locale, keyboard, firewall or PAM settings.
 
 | Area | Parallels guest | Bare-metal AMD |
 | --- | --- | --- |
-| Hostname | `nixos` | `nixos-amd64` |
+| Hostname | `nixos` | the host directory's name |
 | Guest tools | `prl-tools`, `prltoolsd` | none |
+| Graphics driver | `virtio_gpu` | NVIDIA (`nvidia-x11`, `nvidia-settings`, suspend units, `acpid`) |
 | Clock | kept by the Mac host | `systemd-timesyncd` |
+| CPU microcode, device firmware | none | AMD microcode, redistributable firmware |
 | File indexer (`localsearch`) | off | on (stock GNOME) |
 | `powertop` auto-tuning | on | off |
 | Firmware updates (`fwupd`) | off | on |
@@ -103,11 +116,42 @@ groups, locale, keyboard, firewall or PAM settings.
 | Voice transcription client | autostarts | not started (no Mac host to talk to) |
 | Tor Browser | nightly ARM build | stable release from nixpkgs |
 
-The hostname differs on purpose. It is the machine's name on the tailnet and
-its device label in NextDNS, so two machines called `nixos` would be
-indistinguishable in both. To change it, edit `networking.hostName` in
-`hosts/nixos-amd64/default.nix`; if you rename the flake output to match,
-update `build_amd64_metal.sh` and `tests/hosts.nix` too.
+## Hostnames and adding machines
+
+A machine's hostname is the name of its directory under `hosts/`. That one
+name is used everywhere: the flake output, the tailnet name, and the device
+label in NextDNS. Hostnames must be unique, or two machines become
+indistinguishable in Tailscale and NextDNS.
+
+**To rename the first machine** before installing it, rename the directory:
+
+```sh
+git mv hosts/nixos-amd64 hosts/<name>
+```
+
+Nothing else needs editing, except that `tests/hosts.nix` has three extra
+hardware checks keyed to the name `nixos-amd64`; rename that string there too
+if you want them to keep running.
+
+**To add another machine:**
+
+```sh
+cp -r hosts/nixos-amd64 hosts/<name>
+git add hosts/<name>          # flakes only see files git knows about
+```
+
+Then, in `hosts/<name>/default.nix`, keep or drop the hardware profiles to
+match the machine (`amd.nix`, `nvidia.nix`), and replace its
+`hardware-configuration.nix` during installation as described below. Install
+with `--flake ...#<name>`. `check_hosts.sh` picks the new host up
+automatically and holds it to the same parity checks.
+
+Use lowercase letters, digits and hyphens for the name. Do not rename
+`hosts/nixos`: the Parallels guest's build script and the test VM refer to it.
+
+Existing YubiKey login enrolments work on every host, because the PAM origin
+is pinned to `pam://nixos` in `security.nix` rather than taken from the
+hostname.
 
 ## Installing on the AMD machine
 
@@ -141,12 +185,13 @@ update `build_amd64_metal.sh` and `tests/hosts.nix` too.
      > hosts/nixos-amd64/hardware-configuration.nix
    ```
 
-   This records the real disk UUIDs, any LUKS device, swap and the initrd
-   storage modules. Commit it later from the installed system.
+   Use the host's own directory if you renamed or copied it. This records the
+   real disk UUIDs, any LUKS device, swap and the initrd storage modules.
+   Commit it later from the installed system.
 6. **Install:**
 
    ```sh
-   nixos-install --flake /mnt/home/martin/nixos#nixos-amd64
+   nixos-install --flake /mnt/home/martin/nixos#nixos-amd64   # or #<name>
    ```
 7. **Set your login password.** It is not in the repository, so the account
    has none after installation and GDM would refuse the login:
@@ -188,10 +233,36 @@ up again or copied from the guest:
 - **SSH host keys.** The new machine generates its own, so other machines
   will see it as a new host.
 
-## Decisions I left for you
+## Decisions made, and ones still open
 
-I kept these identical to the guest, as asked, but each is a place where the
-AMD machine might reasonably want something different.
+Settled:
+
+- **Graphics.** NVIDIA's driver, as described above.
+- **Browsers.** Firefox is the principal browser and the declared default on
+  every host. Chromium stays installed on every host as the backup. Google
+  ships no ARM Linux build of Chrome, so Chromium is the one browser that
+  keeps the package set and the dock identical everywhere.
+- **Hostnames.** Taken from the host directory, as described above.
+
+One NVIDIA setting depends on the exact card, which I do not know:
+
+- **`hardware.nvidia.open`.** It defaults to `false`, NVIDIA's proprietary
+  kernel module, which drives every card up to and including the RTX 40
+  series. **An RTX 50-series card works only with NVIDIA's open kernel
+  module**, so for one of those add `hardware.nvidia.open = true;` to the
+  host's `default.nix` before installing. The userspace driver is NVIDIA's
+  proprietary one either way.
+
+Also worth knowing about the NVIDIA driver: it has to support the running
+kernel, and this configuration tracks the newest kernel
+(`boot.kernelPackages = pkgs.linuxPackages_latest` in `boot.nix`). The two
+agree today. If a future `update.sh` fails because the driver does not build
+against a brand-new kernel, pin that host to the long-term kernel by adding
+`boot.kernelPackages = lib.mkForce pkgs.linuxPackages;` to its `default.nix`.
+The parity check `same-kernel-series` will then fail for that host, which is
+the intended reminder that it has diverged.
+
+Still open, kept identical to the guest:
 
 1. **Keyboard layout.** The system uses the `gb` layout with the `mac`
    variant, and `keyd.nix` remaps `£` and `#` on that assumption. With an
@@ -200,32 +271,21 @@ AMD machine might reasonably want something different.
    overriding for that host in three places: `services.xserver.xkb` in
    `desktop.nix`, the `gb+mac` input source in `gnome.nix`, and the keyd
    chords.
-2. **Graphics card.** The host assumes Radeon graphics, integrated or
-   discrete. With an NVIDIA card it still boots (on `nouveau`), but you
-   would want `services.xserver.videoDrivers = [ "nvidia" ]` and the
-   `hardware.nvidia` options in `hosts/nixos-amd64/default.nix`, and to drop
-   the `amdgpu` line.
-3. **Chrome.** `packages.nix` installs Chromium because Google ships no ARM
-   Linux build of Chrome, and its comment suggests swapping to
-   `google-chrome` on x86_64. I left Chromium on both so the package set and
-   the dock favourites stay the same. Swapping means making the package and
-   the `chromium-browser.desktop` favourite in `gnome.nix` conditional on the
-   architecture.
-4. **Voice transcription.** The system-side pieces (ydotool, wl-clipboard,
-   the `input` group) are installed on both machines, but the client only
+2. **Voice transcription.** The system-side pieces (ydotool, wl-clipboard,
+   the `input` group) are installed on every machine, but the client only
    runs on the guest because it sends audio work to the Mac. Running it on
-   the AMD machine needs a decision about where transcription happens.
-5. **CD ripping.** `whipper.conf` holds the read offset calibrated for the
+   bare metal needs a decision about where transcription happens.
+3. **CD ripping.** `whipper.conf` holds the read offset calibrated for the
    ASUS SDRW-08D2S-U drive. A different drive needs its own entry added to
    `home/martin/whipper/whipper.conf`.
-6. **Laptop or desktop.** GNOME's `power-profiles-daemon` is on by default,
-   which suits both. Nothing laptop-specific (lid, battery thresholds) is
-   configured.
+4. **Laptop or desktop.** GNOME's `power-profiles-daemon` is on by default,
+   which suits both. Nothing laptop-specific (lid, battery thresholds, hybrid
+   graphics switching) is configured.
 
-## Keeping the two in step
+## Keeping the hosts in step
 
-Run `check_hosts.sh` on either machine after any change that might be
-hardware-specific. It evaluates both hosts without building anything and
+Run `check_hosts.sh` on any machine after any change that might be
+hardware-specific. It evaluates every host without building anything and
 prints one line per check. When a difference between the machines is
 intended, add it to the short allow-lists at the top of `tests/hosts.nix`, so
 the list of differences stays explicit.
@@ -234,7 +294,8 @@ For a new hardware-specific setting, follow the existing pattern:
 
 - Something Parallels needs: gate it on `config.hardware.parallels.enable`
   (`osConfig.hardware.parallels.enable` in Home Manager modules).
-- Something only real AMD hardware needs: put it in
-  `hosts/nixos-amd64/default.nix`.
+- Something a kind of hardware needs: put it in a profile under
+  `modules/hardware/` and import it from the hosts that have that hardware.
+- Something one machine alone needs: put it in that host's `default.nix`.
 - A package that differs by architecture: branch on
   `pkgs.stdenv.hostPlatform.isx86_64`, as Tor Browser and Holos do.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Check that the Parallels guest (nixos) and the bare-metal AMD machine
-# (nixos-amd64) still evaluate to the same packages and home directory, and
+# Check that the Parallels guest (nixos) and every bare-metal machine under
+# hosts/ still evaluate to the same packages and home directory, and
 # that each keeps its own hardware-specific pieces. Evaluation only: nothing
 # is built or switched, so it is safe to run on either machine.
 #
