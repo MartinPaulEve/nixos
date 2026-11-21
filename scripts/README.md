@@ -8,6 +8,12 @@ machines via `environment.shellInit` in `modules/nixos/users.nix` (as
 `/home/martin/nixos/scripts`; on other machines, add the checkout's `scripts/`
 directory to `PATH` yourself).
 
+## Setting up a new machine
+
+| Script | What it does | Where to run it |
+|---|---|---|
+| `install.sh` | Turns a base NixOS install into this configuration. Asks for the hostname; finds (or regenerates) the hardware scan; detects the processor, graphics card, install release and EFI partition; carries over disk-encryption settings; writes `hosts/<hostname>/`; checks it evaluates; then offers to build, switch and set the `martin` password. Run as `./scripts/install.sh` from the checkout (it is not on `PATH` yet). `--help` lists a flag for every question. See `AMD64.md`. | A new x86_64 machine, once |
+
 ## Rebuild commands
 
 | Script | What it does | Where to run it |

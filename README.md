@@ -23,6 +23,7 @@ hosts/                     One directory per machine; the directory name is the 
 modules/
   hardware/                Opt-in hardware profiles, imported by the hosts that need them
     amd.nix                AMD CPU: microcode, firmware, KVM, fwupd
+    intel.nix              Intel CPU: the same
     nvidia.nix             NVIDIA card on NVIDIA's driver: modesetting, suspend, early KMS
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
@@ -82,7 +83,9 @@ home/                      Home Manager wiring, attached as a NixOS module
     whipper/               Whipper config source
 tests/
   hosts.nix                Evaluation-only checks that all hosts stay in step (run via check_hosts.sh)
+  install_test.sh          Tests for scripts/install.sh against fake machines
 scripts/                   Environment-management commands (on PATH; see scripts/README.md)
+  install.sh               Set a machine up from a base NixOS install: asks for hostname + hardware, writes hosts/<name>
   build_aarch64_mac.sh     Rebuild + switch the Mac/Parallels guest
   build_amd64_metal.sh     Rebuild + switch a bare-metal machine (output chosen by hostname)
   update.sh                Update nixpkgs + home-manager, rebuild this machine, show what changed
@@ -505,7 +508,12 @@ The aarch64 Parallels guest on the Mac:
 build_aarch64_mac.sh        # sudo nixos-rebuild switch --flake ~/nixos#nixos
 ```
 
-A bare-metal machine (first-time installation is in `AMD64.md`); the flake
+A new machine is set up once with `install.sh`, run on a base NixOS install:
+it asks for the hostname, finds the hardware scan, detects the processor and
+graphics card, writes `hosts/<hostname>/` and offers to build and switch
+(details in `AMD64.md`).
+
+A bare-metal machine after that; the flake
 output is the machine's hostname, which is its directory name under `hosts/`:
 
 ```sh

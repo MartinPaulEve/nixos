@@ -190,7 +190,8 @@ let
         && vm.networking.firewall.trustedInterfaces
         == metal.networking.firewall.trustedInterfaces;
       u2f-identical = vm.security.pam.u2f.settings == metal.security.pam.u2f.settings;
-      state-version-identical = vm.system.stateVersion == metal.system.stateVersion;
+      # (system.stateVersion is deliberately not compared: it records the
+      # release each machine was first installed with, which may differ.)
       plymouth-identical = vm.boot.plymouth.theme == metal.boot.plymouth.theme;
       system-services-vm-only =
         only (enabledServices vm) (enabledServices metal) == vmOnlyServices;

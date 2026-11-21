@@ -37,9 +37,14 @@ booted on AMD hardware yet.
   gems, as on the guest, plus the NVIDIA kernel module, which is unfree and
   so never in the binary cache. It compiles in a few minutes and again on
   every kernel update.
+- **Verified.** `scripts/install.sh` is covered by `tests/install_test.sh`,
+  which runs it against fake machines (AMD and Intel, NVIDIA and Radeon,
+  encrypted disks, small and oddly mounted EFI partitions) and checks what the
+  resulting host evaluates to. Its interactive prompts were exercised by hand.
+- **Not verified.** The script's final build-and-switch step, which needs a
+  real machine.
 - **Placeholder.** `hosts/nixos-amd64/hardware-configuration.nix` is a
-  stand-in, because the real one can only be generated on the machine. See the
-  install steps.
+  stand-in. Real machines get their own host directory from `install.sh`.
 
 ## What changed in the repository
 
@@ -50,6 +55,10 @@ booted on AMD hardware yet.
 - `modules/hardware/amd.nix` is the AMD processor profile: CPU microcode,
   redistributable firmware (Wi-Fi, Bluetooth), the `kvm-amd` module so the
   QEMU test VM runs accelerated, and `fwupd` for firmware updates.
+- `modules/hardware/intel.nix` is the same for an Intel processor, so the
+  installer has a profile for either.
+- `scripts/install.sh` sets a machine up from a base NixOS install; see
+  "Installing on a machine". `tests/install_test.sh` tests it.
 - `modules/hardware/nvidia.nix` is the NVIDIA profile: NVIDIA's own driver,
   kernel modesetting (GNOME on Wayland needs it), video-memory save and
   restore across suspend, the `nvidia-settings` panel, and the driver loaded
@@ -133,18 +142,16 @@ Nothing else needs editing, except that `tests/hosts.nix` has three extra
 hardware checks keyed to the name `nixos-amd64`; rename that string there too
 if you want them to keep running.
 
-**To add another machine:**
+**To add another machine,** run `scripts/install.sh` on it (next section). It
+asks for the hostname and creates `hosts/<name>/` from that machine's own
+hardware. `check_hosts.sh` picks the new host up automatically and holds it
+to the same parity checks.
 
-```sh
-cp -r hosts/nixos-amd64 hosts/<name>
-git add hosts/<name>          # flakes only see files git knows about
-```
-
-Then, in `hosts/<name>/default.nix`, keep or drop the hardware profiles to
-match the machine (`amd.nix`, `nvidia.nix`), and replace its
-`hardware-configuration.nix` during installation as described below. Install
-with `--flake ...#<name>`. `check_hosts.sh` picks the new host up
-automatically and holds it to the same parity checks.
+`hosts/nixos-amd64` is not a real machine: its hardware scan is a
+placeholder. It is there so the x86_64 build can be checked from the guest
+before any bare-metal machine exists, and as the model for a host file. Once
+a real x86_64 host is committed you can delete it; move the string
+`nixos-amd64` in `tests/hosts.nix` to the real host's name if you do.
 
 Use lowercase letters, digits and hyphens for the name. Do not rename
 `hosts/nixos`: the Parallels guest's build script and the test VM refer to it.
@@ -153,55 +160,78 @@ Existing YubiKey login enrolments work on every host, because the PAM origin
 is pinned to `pam://nixos` in `security.nix` rather than taken from the
 hostname.
 
-## Installing on the AMD machine
+## Installing on a machine
 
-1. **Firmware settings.** Boot in UEFI mode with Secure Boot off. The
-   configuration uses systemd-boot, which is unsigned.
-2. **Boot the NixOS 26.05 x86_64 installer** and get online.
-3. **Partition and format.** At minimum an EFI system partition (1 GiB is
-   comfortable) and a root partition, mounted at `/mnt` and `/mnt/boot`:
+The supported route is: put a plain NixOS install on the machine, then let
+`scripts/install.sh` turn it into this configuration.
 
-   ```sh
-   mkfs.fat -F 32 -n boot /dev/<esp>
-   mkfs.ext4 -L nixos /dev/<root>
-   mount /dev/disk/by-label/nixos /mnt
-   mount --mkdir -o umask=077 /dev/disk/by-label/boot /mnt/boot
-   ```
-
-   Disk encryption and swap are your choice here. If you set up LUKS or a
-   swap partition, the next step records them.
-4. **Put the repository at `/mnt/home/martin/nixos`.** The path matters:
-   `users.nix` puts `/home/martin/nixos/scripts` on `PATH`.
+1. **Install NixOS normally** from the official x86_64 installer, in UEFI
+   mode with Secure Boot off (the configuration boots with systemd-boot,
+   which is unsigned). Any disk layout, with or without encryption. The
+   username and hostname you choose there do not matter.
+2. **Get this repository onto it** and run the installer script:
 
    ```sh
    nix-shell -p git
-   git clone <this repository> /mnt/home/martin/nixos
-   cd /mnt/home/martin/nixos
-   ```
-5. **Replace the placeholder hardware scan** with the real one:
-
-   ```sh
-   nixos-generate-config --root /mnt --show-hardware-config \
-     > hosts/nixos-amd64/hardware-configuration.nix
+   git clone <this repository> ~/nixos
+   ~/nixos/scripts/install.sh
    ```
 
-   Use the host's own directory if you renamed or copied it. This records the
-   real disk UUIDs, any LUKS device, swap and the initrd storage modules.
-   Commit it later from the installed system.
-6. **Install:**
+The script asks for, or detects and asks you to confirm:
 
-   ```sh
-   nixos-install --flake /mnt/home/martin/nixos#nixos-amd64   # or #<name>
-   ```
-7. **Set your login password.** It is not in the repository, so the account
-   has none after installation and GDM would refuse the login:
+| Question | How it is detected | Where the answer goes |
+| --- | --- | --- |
+| Hostname | suggests the current one, unless it is the default `nixos` | the name of `hosts/<hostname>/` |
+| Hardware scan | finds `/etc/nixos/hardware-configuration.nix`; can generate a fresh one or take a path | `hosts/<hostname>/hardware-configuration.nix` |
+| Processor | CPU vendor | imports `amd.nix` or `intel.nix` |
+| Graphics card | PCI display adapters; NVIDIA wins over integrated graphics | imports `nvidia.nix`, or Radeon early KMS |
+| NVIDIA kernel module | asks: `nvidia` (proprietary) or `nvidia-open` (required for RTX 50) | `hardware.nvidia.open` |
+| Release first installed | `system.stateVersion` in `/etc/nixos/configuration.nix` | `system.stateVersion` |
+| EFI partition | the vfat filesystem in the scan, and its size | mount point if not `/boot`; fewer boot entries if under 1 GiB |
+| Disk encryption | LUKS lines the base install wrote to `configuration.nix` instead of the scan | copied into the host file |
 
-   ```sh
-   nixos-enter --root /mnt -c 'passwd martin'
-   chown -R 1000:100 /mnt/home/martin
-   ```
-8. **Reboot.** From then on, rebuild with `build_amd64_metal.sh` and update
-   with `update.sh`.
+It refuses to go on if the machine was not booted in UEFI mode, if the
+hostname is taken or invalid, or if the scan is missing. It writes nothing
+until every answer is in, then stages the new host directory in git and
+checks that the whole system evaluates.
+
+Finally it offers to build and switch. If you accept, it also:
+
+- asks you to choose a password for `martin` when that account is new. The
+  password is not in the repository, and the login screen refuses an account
+  without one.
+- copies the repository to `/home/martin/nixos` if you ran it from somewhere
+  else, because `users.nix` puts that path's `scripts/` on `PATH`.
+
+Then reboot and log in as `martin`. From then on, rebuild with
+`build_amd64_metal.sh` and update with `update.sh`. Commit the new host
+directory once Bitwarden is set up (commits are signed through its agent).
+
+Two things to know about the switch:
+
+- The account you created during the base install is removed if it is not
+  `martin`, because the configuration does not declare it. Its home
+  directory is left in place.
+- If the base install used GRUB, systemd-boot replaces it. The old GRUB
+  entry stays in the firmware's boot menu but is no longer updated.
+
+Every question has a flag (`install.sh --help`), so the script can also be
+run unattended, and re-run with `--hostname <name> --force` to regenerate a
+host.
+
+### Installing without a base install
+
+From the installer ISO instead: partition and mount at `/mnt`, clone the
+repository to `/mnt/home/martin/nixos`, copy `hosts/nixos-amd64` to
+`hosts/<name>`, replace its scan with the output of
+`nixos-generate-config --root /mnt --show-hardware-config`, `git add` it, and
+run `nixos-install --flake /mnt/home/martin/nixos#<name>`. Before rebooting,
+set the password and ownership:
+
+```sh
+nixos-enter --root /mnt -c 'passwd martin'
+chown -R 1000:100 /mnt/home/martin
+```
 
 ## State the repository does not carry
 
@@ -246,7 +276,7 @@ Settled:
 
 One NVIDIA setting depends on the exact card, which I do not know:
 
-- **`hardware.nvidia.open`.** It defaults to `false`, NVIDIA's proprietary
+- **`hardware.nvidia.open`.** `install.sh` asks which you want. It defaults to `false`, NVIDIA's proprietary
   kernel module, which drives every card up to and including the RTX 40
   series. **An RTX 50-series card works only with NVIDIA's open kernel
   module**, so for one of those add `hardware.nvidia.open = true;` to the
