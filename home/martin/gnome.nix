@@ -11,14 +11,22 @@
 # Requires the dash-to-dock, appindicator and clipboard-indicator extension
 # packages (installed via users.martin.packages).
 # Re-dump and regenerate if you want to capture new GNOME tweaks.
-{ lib, ... }:
+{ lib, osConfig, ... }:
 
 with lib.hm.gvariant;
 
 {
   # Pin the display to 1440x900. GNOME stores monitor configuration in
   # ~/.config/monitors.xml (not dconf), keyed to the Virtual-1 connector.
-  xdg.configFile."monitors.xml".source = ./gnome/monitors.xml;
+  #
+  # Only on the Parallels guest (and the QEMU test VM, which sets the same
+  # file in modules/nixos/vm.nix). On real hardware the file has to stay
+  # GNOME's own: Settings → Displays writes the layout of the actual monitors
+  # to it, and a store symlink there would be replaced by that write and then
+  # collide with Home Manager's backup on the following rebuild.
+  xdg.configFile."monitors.xml" = lib.mkIf osConfig.hardware.parallels.enable {
+    source = ./gnome/monitors.xml;
+  };
 
   dconf.settings = {
     "de/wagnermartin/Plattenalbum" = {

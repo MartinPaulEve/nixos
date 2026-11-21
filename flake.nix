@@ -69,5 +69,16 @@
         })
       ];
     };
+
+    # The bare-metal AMD (x86_64) machine: the same modules and home
+    # configuration on real hardware. Host entry point: ./hosts/nixos-amd64;
+    # install and migration notes: AMD64.md. Rebuild on that machine with
+    # scripts/build_amd64_metal.sh.
+    nixosConfigurations.nixos-amd64 = nixpkgs.lib.nixosSystem {
+      specialArgs = { inherit inputs; };
+      modules = [
+        ./hosts/nixos-amd64
+      ];
+    };
   };
 }

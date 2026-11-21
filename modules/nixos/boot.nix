@@ -34,11 +34,13 @@ in
     themePackages = [ nixos-mac-style ];
   };
 
-  # Load the real KMS driver in the initrd so early KMS brings up the virtio-gpu
-  # framebuffer before Plymouth starts drawing. Without this, Plymouth renders on
-  # the EFI simple-framebuffer (simpledrm) and virtio_gpu only loads ~5s into
-  # stage-2 boot, and the mid-boot framebuffer handoff hides the splash.
-  boot.initrd.kernelModules = [ "virtio_gpu" ];
+  # For the splash to show, the real KMS driver has to come up in the initrd,
+  # before Plymouth starts drawing. Otherwise Plymouth renders on the EFI
+  # simple-framebuffer (simpledrm), the GPU driver only loads ~5s into stage-2
+  # boot, and the mid-boot framebuffer handoff hides the splash. Which driver
+  # that is depends on the machine, so it is set per host: virtio_gpu for the
+  # Parallels guest (hosts/nixos) and the QEMU test VM (vm.nix), amdgpu for
+  # the bare-metal AMD machine (hosts/nixos-amd64).
 
   # Quiet the console so Plymouth shows a clean splash instead of kernel logs.
   boot.consoleLogLevel = 0;

@@ -38,6 +38,16 @@
       ];
     };
 
+    # The virtio-vga device above needs the same early-KMS driver as the
+    # Parallels guest (see boot.nix); stated here so the VM gets it whichever
+    # host it is built from.
+    boot.initrd.kernelModules = [ "virtio_gpu" ];
+
+    # Pin the VM's display to 1440x900, as on the Parallels guest: QEMU's
+    # virtual display is the same Virtual-1 connector (home/martin/gnome.nix).
+    home-manager.users.martin.xdg.configFile."monitors.xml".source =
+      ../../home/martin/gnome/monitors.xml;
+
     # Guest-side agent for the SPICE channel declared above.
     services.spice-vdagentd.enable = true;
 

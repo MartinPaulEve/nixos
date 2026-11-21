@@ -16,13 +16,19 @@
 #
 # Updating a plugin: bump its `version` and refresh the three hashes with
 #   nix store prefetch-file https://github.com/<repo>/releases/download/<ver>/<file>
-{ lib, pkgs, ... }:
+{ lib, pkgs, osConfig, ... }:
 
 let
-  # Vault root on the Parallels share. If the share is not mounted (e.g. the
+  # Vault root. On the Parallels guest it is addressed on the share itself;
+  # everywhere else it is the same folder under the local ~/Documents (which
+  # on the guest is only a symlink onto that share — see mac-folders.nix).
+  # If the vault is not there (share not mounted, repo not cloned yet, the
   # x86 QEMU test VM), the activation script below detects the missing
-  # directory and skips, so this stays harmless on other hosts.
-  vault = "/mnt/psf/Home/Documents/Programming/MESH/commons-docs";
+  # directory and skips, so this stays harmless on any host.
+  vault =
+    if osConfig.hardware.parallels.enable
+    then "/mnt/psf/Home/Documents/Programming/MESH/commons-docs"
+    else "/home/martin/Documents/Programming/MESH/commons-docs";
 
   # One release asset (main.js / manifest.json / styles.css) fetched from the
   # plugin's GitHub release by its pinned tag.
