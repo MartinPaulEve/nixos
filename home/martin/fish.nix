@@ -27,7 +27,10 @@ in
     #  - NOBYOBU set in the environment is the explicit escape hatch: a plain
     #    shell with the terminal's own scrollback. The "Ghostty (no byobu)"
     #    desktop entry and the nobyobu function (see ghostty.nix) set it;
-    #    `NOBYOBU=1 fish` does the same by hand, e.g. over ssh.
+    #    `NOBYOBU=1 fish` does the same by hand.
+    #  - A login over ssh (sshd sets $SSH_CONNECTION) gets a plain shell by
+    #    default; run `byobu` by hand there to attach to the session. A local
+    #    terminal never has the variable set, so the desktop is unaffected.
     #  - IDE-embedded terminals (JetBrains JediTerm sets $TERMINAL_EMULATOR)
     #    stay plain fish: the IDE opens the shell at the project root and
     #    manages its own tabs, and byobu's F-keys fight the IDE's.
@@ -50,6 +53,7 @@ in
           and not set -q TMUX
           and not set -q BYOBU_BACKEND
           and not set -q NOBYOBU
+          and not set -q SSH_CONNECTION
           and not string match -q 'JetBrains*' -- "$TERMINAL_EMULATOR"
           and test -t 1
           if test "$PWD" = "$HOME"
