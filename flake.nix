@@ -40,45 +40,51 @@
     claude-code.url = "github:MartinPaulEve/claude-code-nix";
   };
 
-  outputs = inputs@{ self, nixpkgs, ... }: {
-    # The `nixos` host. `specialArgs` threads the whole `inputs` set into every
-    # module, so modules can reach flake inputs directly (e.g. inputs.worksummary
-    # in modules/nixos/packages.nix). Host + hardware entry point: ./hosts/nixos.
-    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit inputs; };
-      modules = [
-        ./hosts/nixos
-      ];
-    };
+  outputs = inputs@{ self, nixpkgs, ... }:
+    let
+      inherit (nixpkgs) lib;
 
-    # The same system rebuilt for x86_64, so the config can be test-driven in a
-    # local QEMU VM on a non-Mac host (the real machine is an aarch64 Parallels
-    # guest). Build and run with:
-    #   nix build .#nixosConfigurations.nixos-vm-x86.config.system.build.vm
-    #   ./result/bin/run-nixos-vm
-    # then view it with: remote-viewer spice://127.0.0.1:5930
-    # (SPICE/VM settings live in modules/nixos/vm.nix.)
-    nixosConfigurations.nixos-vm-x86 = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit inputs; };
-      modules = [
-        ./hosts/nixos
-        ({ lib, ... }: {
-          nixpkgs.hostPlatform = "x86_64-linux";
-          # Parallels guest tools are pointless (and unfree) under QEMU.
-          hardware.parallels.enable = lib.mkForce false;
-        })
-      ];
-    };
+      # Build the machine described by ./hosts/<name>. Every host gets the
+      # same shared system modules and the same Home Manager configuration;
+      # its directory adds only its own hardware. `specialArgs` threads the
+      # whole `inputs` set into every module, so modules can reach flake
+      # inputs directly (e.g. inputs.worksummary in modules/nixos/packages.nix).
+      #
+      # The hostname defaults to the directory name, so naming a machine is
+      # naming its directory. (A host file can still set networking.hostName
+      # itself to override that.)
+      mkHost = name: extraModules: lib.nixosSystem {
+        specialArgs = { inherit inputs; };
+        modules = [
+          (./hosts + "/${name}")
+          ./modules/nixos
+          ./home
+          { networking.hostName = lib.mkDefault name; }
+        ] ++ extraModules;
+      };
 
-    # The bare-metal AMD (x86_64) machine: the same modules and home
-    # configuration on real hardware. Host entry point: ./hosts/nixos-amd64;
-    # install and migration notes: AMD64.md. Rebuild on that machine with
-    # scripts/build_amd64_metal.sh.
-    nixosConfigurations.nixos-amd64 = nixpkgs.lib.nixosSystem {
-      specialArgs = { inherit inputs; };
-      modules = [
-        ./hosts/nixos-amd64
-      ];
+      # Every directory under ./hosts is a machine: `nixos` (the aarch64
+      # Parallels guest), `nixos-amd64` (bare-metal AMD + NVIDIA), and any
+      # added later. Nothing needs registering here — see AMD64.md.
+      hostNames = builtins.attrNames
+        (lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./hosts));
+    in
+    {
+      nixosConfigurations = lib.genAttrs hostNames (name: mkHost name [ ]) // {
+        # The Parallels guest's system rebuilt for x86_64, so the config can
+        # be test-driven in a local QEMU VM on a non-Mac host. Build and run
+        # with:
+        #   nix build .#nixosConfigurations.nixos-vm-x86.config.system.build.vm
+        #   ./result/bin/run-nixos-vm
+        # then view it with: remote-viewer spice://127.0.0.1:5930
+        # (SPICE/VM settings live in modules/nixos/vm.nix.)
+        nixos-vm-x86 = mkHost "nixos" [
+          ({ lib, ... }: {
+            nixpkgs.hostPlatform = "x86_64-linux";
+            # Parallels guest tools are pointless (and unfree) under QEMU.
+            hardware.parallels.enable = lib.mkForce false;
+          })
+        ];
+      };
     };
-  };
 }
