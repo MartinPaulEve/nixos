@@ -78,5 +78,50 @@ in
     })
     functionFiles)) // {
     "fish/config.fish".force = true;
+
+    # fastfetch runs on every interactive shell start (above), and its disk
+    # module treats sshfs mounts as real disks: it calls statvfs() on each
+    # one to report free space. On a mount whose server has gone away that
+    # call blocks until ssh gives up, which holds up the prompt. Skip the
+    # sshfs mounts (mounts.nix) entirely; hideFS is checked before the mount
+    # is touched at all.
+    #
+    # A config file replaces fastfetch's built-in module list rather than
+    # adding to it, so the list below is the stock one (`fastfetch
+    # --gen-config -`) with only the disk entry changed.
+    "fastfetch/config.jsonc".text = builtins.toJSON {
+      "$schema" = "https://github.com/fastfetch-cli/fastfetch/raw/master/doc/json_schema.json";
+      modules = [
+        "title"
+        "separator"
+        "os"
+        "host"
+        "kernel"
+        "uptime"
+        "packages"
+        "shell"
+        "display"
+        "de"
+        "wm"
+        "wmtheme"
+        "theme"
+        "icons"
+        "font"
+        "cursor"
+        "terminal"
+        "terminalfont"
+        "cpu"
+        "gpu"
+        "memory"
+        "swap"
+        { type = "disk"; hideFS = "fuse.sshfs"; }
+        "localip"
+        "battery"
+        "poweradapter"
+        "locale"
+        "break"
+        "colors"
+      ];
+    };
   };
 }
