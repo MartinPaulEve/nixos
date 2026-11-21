@@ -7,7 +7,8 @@ ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 
 if [ "$(uname -m)" != "aarch64" ]; then
   echo "error: this rebuilds the aarch64 Mac/Parallels system; this machine is $(uname -m)." >&2
-  echo "       For the local x86_64 test VM use build_x86_vm_spice.sh instead." >&2
+  echo "       On the bare-metal AMD machine use build_amd64_metal.sh; for the" >&2
+  echo "       x86_64 test VM use build_x86_vm_spice.sh." >&2
   exit 1
 fi
 

@@ -8,7 +8,9 @@
 #   1. refuses to run if flake.lock has uncommitted changes (the update commits
 #      the lock, and must not sweep unrelated edits into that commit);
 #   2. updates the chosen inputs and commits the new flake.lock;
-#   3. if the lock actually changed, rebuilds via build_aarch64_mac.sh;
+#   3. if the lock actually changed, rebuilds via this machine's build script
+#      (build_aarch64_mac.sh on the Parallels guest, build_amd64_metal.sh on
+#      the bare-metal AMD machine);
 #   4. prints what changed between the running and the new system, and says
 #      so if the kernel moved, since a switch alone keeps the old kernel running.
 #
@@ -19,7 +21,7 @@
 #   update.sh --rebuild       rebuild even if the lock did not change
 #
 # Other uncommitted work in the repository is left alone and will be included
-# in the rebuild, exactly as build_aarch64_mac.sh would include it.
+# in the rebuild, exactly as the build script would include it.
 set -euo pipefail
 
 SCRIPTS="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -77,7 +79,12 @@ if [ "$before" = "$after" ]; then
   echo "flake.lock unchanged; rebuilding anyway (--rebuild)."
 fi
 
-"$SCRIPTS/build_aarch64_mac.sh"
+# Each machine rebuilds its own flake output.
+case "$(uname -m)" in
+  aarch64) "$SCRIPTS/build_aarch64_mac.sh" ;;
+  x86_64) "$SCRIPTS/build_amd64_metal.sh" ;;
+  *) echo "error: no rebuild script for $(uname -m)." >&2; exit 1 ;;
+esac
 
 echo
 echo "Changes between the booted system and the new one:"

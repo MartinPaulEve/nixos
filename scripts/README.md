@@ -1,8 +1,8 @@
 # Scripts
 
-Helper commands for managing the two hardware environments this flake builds:
-the real system (aarch64, Parallels guest on the Mac) and an x86_64 QEMU test
-VM viewable over SPICE. All scripts locate the repository from their own path,
+Helper commands for managing the hardware environments this flake builds: the
+aarch64 Parallels guest on the Mac, the bare-metal AMD (x86_64) machine, and an
+x86_64 QEMU test VM viewable over SPICE. All scripts locate the repository from their own path,
 so they work from any checkout location. They are added to `PATH` on NixOS
 machines via `environment.shellInit` in `modules/nixos/users.nix` (as
 `/home/martin/nixos/scripts`; on other machines, add the checkout's `scripts/`
@@ -12,8 +12,10 @@ directory to `PATH` yourself).
 
 | Script | What it does | Where to run it |
 |---|---|---|
-| `build_aarch64_mac.sh` | `sudo nixos-rebuild switch --flake <repo>#nixos` — rebuilds and activates the real system. Refuses to run on non-aarch64 machines. | The Mac/Parallels NixOS guest |
-| `update.sh` | Pulls security/package updates and rebuilds: `nix flake update nixpkgs home-manager --commit-lock-file`, then `build_aarch64_mac.sh` if the lock moved, then `nix store diff-closures` against the booted system and a reboot hint if the kernel changed. `--all` updates every input, `INPUT...` only the named ones, `--rebuild` forces a rebuild. Refuses to start with uncommitted `flake.lock` changes. | The Mac/Parallels NixOS guest |
+| `build_aarch64_mac.sh` | `sudo nixos-rebuild switch --flake <repo>#nixos` — rebuilds and activates the Parallels guest. Refuses to run on non-aarch64 machines. | The Mac/Parallels NixOS guest |
+| `build_amd64_metal.sh` | `sudo nixos-rebuild switch --flake <repo>#nixos-amd64` — rebuilds and activates the bare-metal AMD machine. Refuses to run on non-x86_64 machines. First-time installation is described in `AMD64.md`. | The bare-metal AMD machine |
+| `update.sh` | Pulls security/package updates and rebuilds: `nix flake update nixpkgs home-manager --commit-lock-file`, then this machine's build script (`build_aarch64_mac.sh` or `build_amd64_metal.sh`, chosen by architecture) if the lock moved, then `nix store diff-closures` against the booted system and a reboot hint if the kernel changed. `--all` updates every input, `INPUT...` only the named ones, `--rebuild` forces a rebuild. Refuses to start with uncommitted `flake.lock` changes. | Either real machine |
+| `check_hosts.sh` | Evaluates both real hosts and checks they still come out as the same packages, home files, user services and settings, apart from the explicit hardware differences listed in `tests/hosts.nix`. Builds nothing; exits non-zero on any mismatch. | Either real machine |
 | `build_x86_vm_spice.sh` | `nix build <repo>#nixosConfigurations.nixos-vm-x86.config.system.build.vm` — builds the test VM runner. Never touches the running system. | Any x86_64 machine with Nix |
 
 ## VM lifecycle
