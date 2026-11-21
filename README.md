@@ -1,16 +1,23 @@
 # NixOS configuration
 
-Flake-based NixOS configuration for the host `nixos`. This repository is the
-source of truth — rebuild directly from here.
+Flake-based NixOS configuration for two machines that share one set of modules
+and one home directory configuration: `nixos`, an aarch64 Parallels guest on a
+Mac, and `nixos-amd64`, a bare-metal AMD (x86_64) machine. This repository is
+the source of truth — rebuild directly from here. [`AMD64.md`](AMD64.md) covers
+the bare-metal host: what differs, how to install it, and what state has to be
+carried across by hand.
 
 ## Layout
 
 ```
 flake.nix                  Flake inputs (nixpkgs, home-manager, herdr, worksummary, claude-code) and outputs
 hosts/
-  nixos/
-    default.nix            Host entry point: hardware scan + host identity
+  nixos/                   The aarch64 Parallels guest
+    default.nix            Host entry point: hardware scan + host identity + virtio early KMS
     hardware-configuration.nix
+  nixos-amd64/             The bare-metal AMD machine (see AMD64.md)
+    default.nix            Host entry point: host identity + AMD microcode, firmware, KVM, early KMS, fwupd
+    hardware-configuration.nix  Placeholder until regenerated on the machine at install time
 modules/
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
@@ -67,9 +74,13 @@ home/                      Home Manager wiring, attached as a NixOS module
     transcribe/            transcribe.toml for the voice-transcription client
     unison/                Unison profile source
     whipper/               Whipper config source
+tests/
+  hosts.nix                Evaluation-only checks that both hosts stay in step (run via check_hosts.sh)
 scripts/                   Environment-management commands (on PATH; see scripts/README.md)
-  build_aarch64_mac.sh     Rebuild + switch the real system (Mac/Parallels)
-  update.sh                Update nixpkgs + home-manager, rebuild, show what changed
+  build_aarch64_mac.sh     Rebuild + switch the Mac/Parallels guest
+  build_amd64_metal.sh     Rebuild + switch the bare-metal AMD machine
+  update.sh                Update nixpkgs + home-manager, rebuild this machine, show what changed
+  check_hosts.sh           Check the two hosts still evaluate to the same packages and home
   build_x86_vm_spice.sh    Build the x86_64 SPICE test VM
   vm_start.sh              Start the test VM (headless, SPICE on localhost:5930)
   vm_shutdown.sh           Gracefully shut the test VM down
@@ -298,10 +309,12 @@ For the splash to appear rather than flicker away mid-boot, the real KMS
 driver must come up in the initrd *before* Plymouth starts drawing. Otherwise
 Plymouth renders on the EFI simple-framebuffer (`simpledrm`) and the actual GPU
 driver only loads seconds into stage-2 boot; that framebuffer handoff hides the
-splash. `boot.nix` therefore force-loads the driver early via
-`boot.initrd.kernelModules`. **This value is machine-specific and must be changed
-per host.** The current VM (Parallels on Apple Silicon) uses the paravirtualised
-`virtio_gpu`; on other hardware substitute the appropriate driver:
+splash. The driver is therefore loaded early via `boot.initrd.kernelModules`.
+**This value is machine-specific, so it is set per host**, not in `boot.nix`:
+the Parallels guest (`hosts/nixos/default.nix`) and the QEMU test VM
+(`modules/nixos/vm.nix`) use the paravirtualised `virtio_gpu`; the bare-metal
+AMD machine (`hosts/nixos-amd64/default.nix`) uses `amdgpu`, via
+`hardware.amdgpu.initrd.enable`. For other hardware:
 
 | Hardware | initrd module |
 | --- | --- |
@@ -311,10 +324,9 @@ per host.** The current VM (Parallels on Apple Silicon) uses the paravirtualised
 | NVIDIA (open) | `nouveau` |
 | Apple Silicon (bare metal) | `appledrm` / DCP stack |
 
-Leaving `virtio_gpu` in place on bare metal is harmless (it finds no matching
-device and no-ops) but provides no early-KMS benefit, so add the real driver
-when migrating to physical hardware — the same as regenerating
-`hardware-configuration.nix` for the new machine.
+Loading a driver with no matching device is harmless (it finds nothing and
+no-ops) but provides no early-KMS benefit, so a host with a different GPU
+should name its real driver in its own `hosts/<name>/default.nix`.
 
 [keyd](https://github.com/rvaiya/keyd) (`modules/nixos/keyd.nix`) provides
 system-wide key remapping at the evdev level, so it works under Wayland (unlike
@@ -477,16 +489,30 @@ those mounts to connect.
 
 ## Rebuilding
 
-Two hardware environments build from this flake, each with a script in
+Three hardware environments build from this flake, each with a script in
 `scripts/` (on PATH on NixOS machines; see `scripts/README.md`):
 
-The real system — the aarch64 Parallels guest on the Mac:
+The aarch64 Parallels guest on the Mac:
 
 ```sh
 build_aarch64_mac.sh        # sudo nixos-rebuild switch --flake ~/nixos#nixos
 ```
 
-Update inputs with `nix flake update` (commit the resulting `flake.lock`).
+The bare-metal AMD machine (first-time installation is in `AMD64.md`):
+
+```sh
+build_amd64_metal.sh        # sudo nixos-rebuild switch --flake ~/nixos#nixos-amd64
+```
+
+Each script refuses to run on the wrong architecture, and `update.sh` picks
+the right one for the machine it is run on. Update inputs with
+`nix flake update` (commit the resulting `flake.lock`).
+
+The two machines are meant to stay the same system. After changing anything
+that might be hardware-specific, run `check_hosts.sh` on either machine: it
+evaluates both hosts (building nothing) and checks they still have the same
+packages, home files, user services and settings, apart from a short,
+explicit list of differences in `tests/hosts.nix`.
 
 ## Testing in a VM
 
@@ -503,5 +529,6 @@ spice_vm_connect.sh         # view it: remote-viewer spice://127.0.0.1:5930
 vm_shutdown.sh              # graceful ACPI power-off
 ```
 
-None of this affects the real system: the VM variant and the x86_64 output
-evaluate separately, and the `nixos` output's derivation is unchanged by them.
+None of this affects the real systems: the VM variant and the `nixos-vm-x86`
+output evaluate separately, and the `nixos` and `nixos-amd64` outputs'
+derivations are unchanged by them.
