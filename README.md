@@ -17,6 +17,10 @@ hosts/                     One directory per machine; the directory name is the 
   nixos/                   The aarch64 Parallels guest
     default.nix            Hardware scan + virtio early KMS
     hardware-configuration.nix
+  animal/                  Bare metal: AMD CPU + RTX 50-series card, dual boot via GRUB (see AMD64.md)
+    default.nix            Hardware profiles, the USB hub quirk, PCIe power saving off, no waldorf mount
+    hardware-configuration.nix
+    monitors.xml           Three-monitor layout for the login screen (installed as /etc/xdg/monitors.xml)
   nixos-amd64/             Bare metal: AMD CPU + NVIDIA card (see AMD64.md); copy it to add a machine
     default.nix            Picks the hardware profiles this machine needs
     hardware-configuration.nix  Placeholder until regenerated on the machine at install time
@@ -26,16 +30,17 @@ modules/
     grub.nix               GRUB instead of systemd-boot, listing other operating systems (dual-boot machines)
     intel.nix              Intel CPU: the same
     nvidia.nix             NVIDIA card on NVIDIA's driver: modesetting, suspend, early KMS
+    usb-hub-recover.nix    Re-enumerates a USB hub that dropped off the bus during boot
   nixos/                   System-level modules, aggregated by default.nix
     audio.nix              PipeWire
     boot.nix               Bootloader (systemd-boot unless the host imports grub.nix), kernel, Plymouth splash
     desktop.nix            X11, GNOME, GNOME Tweaks, Firefox, ghostty as the xdg default terminal
-    email.nix              Thunderbird + Proton Mail bridge (headless service)
-    espanso.nix            uinput access for espanso's Wayland EVDEV injection
+    email.nix              Thunderbird
+    espanso.nix            espanso text expander: Wayland build, user service, uinput access
     fonts.nix              System fonts, incl. Nerd Fonts
     keyd.nix               System-wide key remapping (evdev, Wayland-safe)
     localization.nix       Time zone, locale, console keymap
-    mounts.nix             Boot-time creation of ~/mounts sshfs mountpoints (tmpfiles)
+    mounts.nix             Boot-time creation of ~/mounts sshfs mountpoints (tmpfiles); per-host sshfsMounts.exclude
     networking.nix         NetworkManager, firewall, Tailscale, OpenVPN, NextDNS (DoT)
     nix.nix                Nix daemon settings, unfree
     packages.nix           System packages + Zotero/LibreOffice integration
@@ -44,7 +49,7 @@ modules/
     printing.nix           CUPS + Avahi
     security.nix           SSH, 1Password, YubiKey, GnuPG
     shutdown.nix           Shutdown latency fixes (caps user-service stop timeouts)
-    transcribe-client.nix  Runtime deps for the mpe-transcribe voice client
+    transcribe.nix         Runtime deps for mpe-transcribe voice transcription (ydotool, clipboard, groups)
     users.nix              User accounts, login shell, SSH authorized keys
     virtualisation.nix     Docker
     vm.nix                 QEMU/SPICE test-VM variant (build-vm only; never affects the real system)
@@ -71,7 +76,7 @@ home/                      Home Manager wiring, attached as a NixOS module
     ssh.nix                OpenSSH client config + public keys (verbatim from ssh/)
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned, + the inlyne preview command
     sublime-default.nix    Sublime Text as the default text-file opener (via xdg-mime, like markdown-preview.nix)
-    transcribe-client.nix  Autostarts the mpe-transcribe voice client (ARM Parallels guest only)
+    transcribe.nix         mpe-transcribe voice transcription: standalone on an NVIDIA machine, client of the Mac on the Parallels guest
     unison.nix             Unison sync profile
     whipper.nix            Whipper CD ripper package + config
     zotero.nix             Registers the Zotero LibreOffice extension (per-user)
@@ -79,7 +84,6 @@ home/                      Home Manager wiring, attached as a NixOS module
     gnome/                 GNOME assets (monitors.xml display layout)
     ssh/                   ~/.ssh/config source and public keys (secrets stay in the Bitwarden agent)
     sublime/               Sublime User files (Jekyll front-matter override, markdown preview plugins)
-    transcribe/            transcribe.toml for the voice-transcription client
     unison/                Unison profile source
     whipper/               Whipper config source
 tests/
@@ -151,11 +155,11 @@ installs one as a side effect:
 | Where | What it installs |
 | --- | --- |
 | `modules/nixos/desktop.nix` | GNOME (via `services.desktopManager.gnome`), GNOME Tweaks, Firefox (`programs.firefox`) |
-| `modules/nixos/email.nix` | Thunderbird, Proton Mail bridge (headless build; see below) |
+| `modules/nixos/email.nix` | Thunderbird |
 | `modules/nixos/security.nix` | GnuPG + `gpg-agent` (`programs.gnupg.agent`), `pam_u2f` / `pamu2fcfg` (YubiKey enrolment), the 1Password polkit integration |
 | `modules/nixos/networking.nix` | NetworkManager, `tailscaled`, OpenVPN 3 (`programs.openvpn3`) |
 | `modules/nixos/virtualisation.nix` | Docker daemon + CLI |
-| `modules/nixos/transcribe-client.nix` | `wl-clipboard` (`wl-copy`/`wl-paste`), `ydotool` + `ydotoold` |
+| `modules/nixos/transcribe.nix` | `wl-clipboard` (`wl-copy`/`wl-paste`), `ydotool` + `ydotoold` |
 | `modules/nixos/keyd.nix` | keyd (system-wide key remapping daemon) |
 | `modules/nixos/users.nix` | `users.martin.packages`: Thunderbird (duplicate of `email.nix`'s, harmless), Python 3, the dash-to-dock, appindicator and clipboard-indicator GNOME Shell extensions |
 | `modules/nixos/fonts.nix` | Nerd Fonts (CaskaydiaCove, Symbols Only) |
@@ -164,8 +168,8 @@ installs one as a side effect:
 | `home/martin/whipper.nix` | whipper CD ripper |
 | `home/martin/sublime.nix`, `obsidian.nix` | Pinned Sublime Text and Obsidian plugins (not apps; see below) |
 
-espanso (text expander) is the one desktop tool *not* declared anywhere here:
-it still runs from a hand-registered user unit, see the espanso note below.
+espanso (text expander) is declared in `modules/nixos/espanso.nix`; only its
+snippets and options stay in `~/.config/espanso`, see the espanso note below.
 
 Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on, scoped so the exception never applies to
@@ -302,10 +306,7 @@ as the `gdm` user and cannot read the `0700` home directory. Because both paths
 are managed declaratively, changing the avatar in GNOME Settings will not
 persist — replace `avatar.jpg` and rebuild.
 
-Email is configured in `modules/nixos/email.nix`, which installs Thunderbird
-and the Proton Mail bridge. The bridge runs as a per-user systemd service using
-the headless `protonmail-bridge` build with `--noninteractive --no-window`,
-avoiding the GUI build that otherwise crashes at login.
+Email is `modules/nixos/email.nix`, which installs Thunderbird.
 
 The bootloader is systemd-boot (`modules/nixos/boot.nix`), except on a host
 that imports `modules/hardware/grub.nix`: that one boots with GRUB, whose menu
@@ -362,42 +363,61 @@ the X11-only AutoKey). The `gb(mac)` layout already carries `£` and `#` on the
 onto those native combinations rather than synthesising Unicode: `Ctrl+Shift+3`
 emits `Shift+3` (`£`) and `Ctrl+4` emits `AltGr+3` (`#`).
 
-`modules/nixos/transcribe-client.nix` carries the runtime dependencies for the
-mpe-transcribe voice-transcription client: `wl-clipboard` (Wayland clipboard
+`modules/nixos/transcribe.nix` carries the system-side dependencies for
+mpe-transcribe voice transcription: `wl-clipboard` (Wayland clipboard
 get/set), `programs.ydotool.enable` (the `ydotoold` daemon that synthesises the
 Ctrl+V paste), and membership of the `input` and `ydotool` groups so the evdev
 hotkey listener can read `/dev/input/event*` and reach the ydotoold socket.
-Recording and transcription happen on the Mac host over encrypted UDP. Group
-changes only apply to fresh sessions, so a re-login is needed after first
-activation. For X11/XWayland apps the clipboard CLI is `xclip` (in
+Group changes only apply to fresh sessions, so a re-login is needed after
+first activation. For X11/XWayland apps the clipboard CLI is `xclip` (in
 `packages.nix`); Wayland-native use goes through `wl-copy`/`wl-paste`.
 
-The client itself is autostarted by `home/martin/transcribe-client.nix` as a
-systemd user service tied to the graphical session, gated (like
-`mac-folders.nix`) to the aarch64 Parallels guest. On first start it clones
-the app from the Parallels share into `~/.local/share/mpe-transcribe` — its
-own clone, because the share's `.venv` can only serve one OS and this VM's
-config differs from the Mac's — and `uv run` builds the venv from there
-(update later with `git -C ~/.local/share/mpe-transcribe pull`). The client
-config, `home/martin/transcribe/transcribe.toml` (client mode, the Mac's
-address, hotkey, corrections), is linked into the clone root where the app
-looks for it; the pre-shared key stays out of the repo in
-`~/.config/transcribe/psk`, referenced from the toml by path. The checkout in
-`~/src/mpe-transcribe` remains a scratch clone for interactive use and is not
-managed here.
+The app itself is autostarted by `home/martin/transcribe.nix` as a systemd
+user service tied to the graphical session, in one of two roles chosen by the
+hardware:
 
-`modules/nixos/espanso.nix` grants the device access espanso's Wayland EVDEV
-backend needs: reading keyboards comes from the `input` group above, and
-injection requires opening `/dev/uinput`, enabled via `hardware.uinput` plus
-the `uinput` group. Without the uinput half espanso crash-loops, briefly
-flashing its layout-detection window at every restart. The espanso app and
-config themselves are still imperative, pending the Home Manager migration:
-the binary is a bare `/nix/store/...-espanso-2.3.0` path with no GC root
-(it will vanish at the next `nix-collect-garbage`, taking the service with
-it), started by a hand-written `~/.config/systemd/user/espanso.service`.
-Matches (the text-expansion snippets) live in `~/.config/espanso/match/*.yml`
-and global options in `~/.config/espanso/config/default.yml`; both are the
-stock templates so far, and espanso reloads them on save.
+| Machine | Unit | What it does |
+| --- | --- | --- |
+| NVIDIA card (the bare-metal hosts) | `transcribe` | Standalone: hotkey, recording from its own microphone, transcription on the GPU with NVIDIA's Parakeet model (`nvidia/parakeet-tdt-0.6b-v3`), paste. No network role at all. |
+| aarch64 Parallels guest | `transcribe-client` | Client: hotkey and paste only; the Mac host records and transcribes, over encrypted UDP. |
+
+Either way, on first start it clones the app into
+`~/.local/share/mpe-transcribe` (from `~/Programming/mpe-transcribe` where
+that checkout exists, otherwise from GitHub) — its own clone, because uv keeps
+the virtualenv inside the project and each machine's config differs — and
+`uv run` builds the venv from there (update later with
+`git -C ~/.local/share/mpe-transcribe pull`, then restart the unit). The
+config is generated in `home/martin/transcribe.nix`: hotkey, paste method and
+corrections are shared by every machine, the model (standalone) or the Mac's
+address (client) is added per role, and the result is linked into the clone
+root as `transcribe.toml`, where the app looks for it. The client's
+pre-shared key stays out of the repo in `~/.config/transcribe/psk`,
+referenced from the toml by path.
+
+The standalone install is PyTorch, NeMo and a CUDA runtime as prebuilt
+wheels, which expect an ordinary Linux layout, so that unit runs uv inside a
+small FHS environment (`buildFHSEnv`, in the same file) carrying Python 3.12,
+PortAudio, libstdc++, a compiler for `python-evdev`, and the clipboard and
+notification tools the app shells out to. Its first start is slow: several
+gigabytes of wheels, then the model (cached in `~/.cache`); follow it with
+`journalctl --user -fu transcribe`. The model stays loaded on the GPU (about
+2 GB of VRAM) for as long as the unit runs.
+
+`modules/nixos/espanso.nix` declares espanso: the Wayland build
+(`espanso-wayland`), a systemd user service started with the graphical
+session, and the device access its Wayland EVDEV backend needs. Reading
+keyboards and injecting through `/dev/uinput` is granted three ways at once —
+`services.espanso` installs the binary behind a `CAP_DAC_OVERRIDE` wrapper in
+`/run/wrappers/bin` and runs the service from there, and martin is in the
+`input` group (above) and the `uinput` group (`hardware.uinput`). Without the
+uinput half espanso crash-loops, briefly flashing its layout-detection window
+at every restart. Only the configuration stays outside the repo: matches (the
+text-expansion snippets) live in `~/.config/espanso/match/*.yml` and global
+options in `~/.config/espanso/config/default.yml`. espanso writes its stock
+templates there on first start and reloads them on save. A machine that still
+has the old hand-written `~/.config/systemd/user/espanso.service` keeps using
+it (a unit in the home directory outranks the system one) until that file is
+deleted.
 
 [worksummary](https://github.com/MartinPaulEve/worksummary) is a self-authored
 CLI for logging daily work items. It is consumed as a flake input (built from a
@@ -456,11 +476,17 @@ Remote filesystems are mounted over sshfs under `~/mounts`, defined in
 
 | Unit | Remote | Mountpoint | At login? |
 | --- | --- | --- | --- |
-| `sshfs-waldorf` | `martin@waldorf:/home/martin` | `~/mounts/waldorf` | yes |
+| `sshfs-waldorf` | `martin@waldorf:/home/martin` | `~/mounts/waldorf` | yes (not on `animal`) |
 | `sshfs-lg1` | `bw://sshmount-lg1` | `~/mounts/lg1` | no |
 | `sshfs-lg2` | `bw://sshmount-lg2` | `~/mounts/lg2` | no |
 | `sshfs-sm_mount` | `bw://sshmount-sm_mount` | `~/mounts/sm_mount` | no |
 | `sshfs-ia` | `backup:/interneta` | `~/mounts/ia` | no |
+
+A host can leave a mount out completely by naming it in
+`sshfsMounts.exclude` (the option is declared in `modules/nixos/mounts.nix`):
+no unit, no mountpoint, and `sshmount` does not know it. `animal` excludes
+`waldorf`, which is the other Linux on its own disks and so is never running
+at the same time.
 
 The `bw://` remotes are Bitwarden secure-note references: `sshmount`
 resolves every one in a single `bw unlock` (one master-password prompt per
@@ -491,6 +517,16 @@ sshumount                     # unmount everything
 
 `sshmount` waits up to ten seconds for the mounts to appear and then reports
 per mount; anything not yet connected keeps retrying inside its unit.
+
+A unit never mounts for a host that is not answering. sshfs mounts the FUSE
+filesystem first and connects second, so while ssh is still trying, the
+mountpoint is a filesystem nobody serves and every `stat()` of it blocks —
+and GNOME stats every mount as the session starts. One unreachable
+at-login mount used to hold the desktop back for most of a minute after
+login. Each unit now makes a bare TCP connection to the host's ssh port
+first (resolved through `ssh -G`, so aliases and ports are honoured) and
+simply fails, to be retried with backoff, if nothing answers; `ConnectTimeout`
+bounds the wait after that.
 `sshumount` stops the unit (which also halts a still-retrying one) and falls
 back to `fusermount3 -uz` for a mount made by hand.
 

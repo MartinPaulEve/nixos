@@ -1,6 +1,9 @@
-# Runtime dependencies for the mpe-transcribe voice-transcription client
-# (hotkey + paste in this VM; recording/transcription happen on the Mac
-# host over encrypted UDP — see ~/src/mpe-transcribe/docs/NETWORK.md).
+# System-side pieces for the mpe-transcribe voice-transcription app: what it
+# needs to hear its hotkey and to paste under Wayland. The app itself is a
+# user service, in home/martin/transcribe.nix, and these are the same
+# whichever way round a machine runs it — as a client of the Mac (the
+# Parallels guest) or doing its own recording and transcription (a machine
+# with an NVIDIA card).
 { pkgs, ... }:
 
 {

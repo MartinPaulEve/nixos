@@ -20,9 +20,22 @@
 #   sshumount                    # unmount everything
 #
 # Because these are user services they start asynchronously with the session
-# and can never block boot or login: if a host is unreachable the unit simply
-# retries in the background — with exponential backoff, see the Restart
-# settings below — until it succeeds (or is stopped).
+# and never block boot: if a host is unreachable the unit simply retries in
+# the background — with exponential backoff, see the Restart settings below —
+# until it succeeds (or is stopped).
+#
+# An unreachable host must also never get as far as mounting. sshfs mounts
+# the FUSE filesystem FIRST and connects second, so for as long as ssh is
+# still trying, the mountpoint is a filesystem nobody answers for: every
+# stat() of it blocks. GNOME stats every mount as the session starts (the
+# gvfs volume monitor, the trash monitor), so one unreachable autoStart mount
+# held the desktop back for the best part of a minute after login, and froze
+# Files for 25 seconds at a time afterwards. Each unit therefore checks that
+# the host answers on its ssh port before it lets sshfs near the mountpoint
+# (see `reachable` below), and ConnectTimeout bounds what is left.
+#
+# A host can leave mounts out altogether with sshfsMounts.exclude
+# (modules/nixos/mounts.nix) — for one that can never work from there.
 #
 # Authentication MUST come from the Bitwarden SSH agent (Bitwarden manages
 # its own autostart entry — see the warning in bitwarden.nix): the
@@ -38,7 +51,7 @@
 # The mountpoints are also created at every boot, owned by martin, by
 # modules/nixos/mounts.nix (systemd-tmpfiles). Keep the two lists in sync —
 # drift is non-fatal, as each service mkdir -p's its own mountpoint.
-{ pkgs, lib, ... }:
+{ pkgs, lib, osConfig, ... }:
 
 let
   mountsDir = "/home/martin/mounts";
@@ -62,13 +75,18 @@ let
   # chroots each user into a virtual root containing only the DSM shared
   # folders, so /volumeX prefixes do not exist over SFTP and only shares
   # (not arbitrary directories or symlinks under /volumeX) are reachable.
-  mounts = {
+  allMounts = {
     waldorf      = { remote = "martin@waldorf:/home/martin"; autoStart = true; };
     lg1      = { remote = "bw://sshmount-lg1"; };
     lg2      = { remote = "bw://sshmount-lg2"; };
     sm_mount = { remote = "bw://sshmount-sm_mount"; };
     ia           = { remote = "backup:/interneta"; };
   };
+
+  # Minus whatever this host has opted out of. Everything below — units,
+  # helpers, the Bitwarden resolver — is generated from this set, so an
+  # excluded mount is simply not there.
+  mounts = removeAttrs allMounts osConfig.sshfsMounts.exclude;
 
   # The Bitwarden-referenced mounts, the env-var key each resolves into
   # inside the session cache, and the one-shot resolver. The cache is only
@@ -116,9 +134,33 @@ let
     # mount. One connection plus reconnect is the reliable combination.
     "ServerAliveInterval=15" # with ServerAliveCountMax, detect dead links fast
     "ServerAliveCountMax=3"
+    "ConnectTimeout=10"      # give up on a silent host fast: until ssh is
+                             # connected the mountpoint blocks whoever
+                             # touches it (see the header)
     "BatchMode=yes"          # key auth only: never prompt for a password
     "IdentityAgent=/home/martin/.bitwarden-ssh-agent.sock" # the Bitwarden agent
   ];
+
+  # Does the host behind an ssh destination ([user@]host) answer on its ssh
+  # port? Asked before sshfs is allowed to mount anything (see the header).
+  # `ssh -G` resolves the destination through ssh's own configuration —
+  # aliases, HostName, Port — without connecting, so the probe dials exactly
+  # what ssh would. It costs no authentication: a bare TCP connect, closed
+  # again at once. Where the answer cannot be had this way (ssh -G failing, a
+  # jump host or proxy command in between) it says yes and leaves it to ssh.
+  reachable = pkgs.writeShellScript "sshfs-reachable" ''
+    conf="$(ssh -G "$1" 2>/dev/null)" || exit 0
+    field() { printf '%s\n' "$conf" | ${pkgs.gawk}/bin/awk -v k="$1" '$1 == k { print $2; exit }'; }
+    for proxy in proxyjump proxycommand; do
+      via="$(field "$proxy")"
+      [ -z "$via" ] || [ "$via" = none ] || exit 0
+    done
+    host="$(field hostname)"
+    port="$(field port)"
+    [ -n "$host" ] && [ -n "$port" ] || exit 0
+    ${pkgs.coreutils}/bin/timeout 5 ${pkgs.runtimeShell} -c \
+      'exec 3<>"/dev/tcp/$1/$2"' probe "$host" "$port" 2>/dev/null
+  '';
 
   mkMount = name: cfg:
     let
@@ -153,6 +195,12 @@ let
             remote="$resolved"
             ;;
         esac
+        # Nothing is mounted for a host that is not there: fail here, and
+        # let the unit's backoff try again later.
+        if ! ${reachable} "''${remote%%:*}"; then
+          echo "sshfs-${name}: ''${remote%%:*} is not answering; not mounting" >&2
+          exit 1
+        fi
         # -f keeps sshfs in the foreground so systemd supervises it directly.
         exec ${pkgs.sshfs}/bin/sshfs -f -o ${builtins.concatStringsSep "," sshOptions} "$remote" ${mountPoint}
       '';

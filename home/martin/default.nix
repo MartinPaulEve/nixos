@@ -22,7 +22,7 @@
     ./ssh.nix
     ./sublime.nix
     ./sublime-default.nix
-    ./transcribe-client.nix
+    ./transcribe.nix
     ./unison.nix
     ./whipper.nix
     ./yubikey.nix

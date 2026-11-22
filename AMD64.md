@@ -75,6 +75,19 @@ booted on AMD hardware yet.
   restore across suspend, the `nvidia-settings` panel, and the driver loaded
   in the initrd so the Plymouth splash draws on the card from the start. The
   `nouveau` driver is blacklisted automatically.
+- `modules/hardware/usb-hub-recover.nix` is a quirk profile for a machine
+  whose USB hub drops off the bus during a cold boot and stays dead until it
+  is replugged: once per boot it reads the kernel log for hubs that failed to
+  enumerate and power-cycles the motherboard port each hangs off. `animal`
+  imports it; `journalctl -b -u usb-hub-recover` shows what it did.
+- `hosts/animal/` carries four things of its own besides its hardware
+  profiles: that hub quirk, `monitors.xml` (installed as
+  `/etc/xdg/monitors.xml`, so the login screen knows the three-monitor layout
+  and puts its dialog on the primary one — GDM never reads the copy in the
+  home directory), `sshfsMounts.exclude = [ "waldorf" ]`, because
+  waldorf is the Ubuntu install on the same disks, and the kernel parameter
+  `pcie_aspm.policy=performance`, carried over from that Ubuntu install
+  after a freeze that looked like the root NVMe drive dropping off the bus.
 - `hosts/nixos-amd64/hardware-configuration.nix` is the placeholder hardware
   scan. It mounts root and `/boot` by filesystem label (`nixos` and `boot`).
 - `flake.nix` now turns every directory under `hosts/` into a flake output
@@ -110,7 +123,10 @@ architecture, and need no change:
 - `home/martin/ghostty.nix`: the software-OpenGL wrapper. On AMD, ghostty is
   the stock package on the real GPU.
 - `home/martin/mac-folders.nix`: the symlinks onto the Mac's folders.
-- `home/martin/transcribe-client.nix`: the voice client that talks to the Mac.
+- `home/martin/transcribe.nix`: voice transcription. This one changes role
+  rather than switching off: a client of the Mac on the guest, and
+  standalone — its own microphone, its own GPU — on a machine with an NVIDIA
+  card.
 - `modules/nixos/packages.nix`: Tor Browser (stable release on x86_64, nightly
   ARM build on the guest) and Holos (per-architecture AppImage).
 
@@ -135,7 +151,7 @@ groups, locale, keyboard, firewall or PAM settings.
 | ghostty rendering | software OpenGL wrapper | real GPU |
 | `~/.config/monitors.xml` | pinned to 1440x900 | owned by GNOME |
 | Mac folder symlinks | `~/Documents` etc. link to the Mac | ordinary local folders |
-| Voice transcription client | autostarts | not started (no Mac host to talk to) |
+| Voice transcription | client: the Mac records and transcribes | standalone: records and transcribes itself, on the NVIDIA card (Parakeet) |
 | Tor Browser | nightly ARM build | stable release from nixpkgs |
 
 ## Hostnames and adding machines
@@ -280,12 +296,16 @@ up again or copied from the guest:
   key, or enrol on the new machine with `pamu2fcfg`. Existing enrolments
   stay valid because the PAM origin is pinned to `pam://nixos` rather than
   derived from the hostname. GnuPG keys in `~/.gnupg` need copying too.
-- **Application logins and profiles.** 1Password, Firefox, Thunderbird, the
-  Proton Mail bridge, Signal, Telegram, Zotero, the JetBrains IDEs, Sublime's
-  licence, `gh auth login`, `aws configure`, atuin, Claude Code.
-- **espanso.** Its config and user unit are still set up by hand from
-  `~/dotfiles`, as the comment in `modules/nixos/espanso.nix` says. Only the
-  device access is declarative.
+- **Application logins and profiles.** 1Password, Firefox, Thunderbird,
+  Signal, Telegram, Zotero, the JetBrains IDEs, Sublime's licence,
+  `gh auth login`, `aws configure`, atuin, Claude Code.
+- **espanso.** The app and its user service are declared
+  (`modules/nixos/espanso.nix`) and start at login. Only the snippets in
+  `~/.config/espanso` are per-machine: espanso writes its stock templates on
+  first start, so copy that directory across if you have changed them.
+- **Voice transcription.** Nothing to copy, but the first login downloads
+  several gigabytes (PyTorch, NeMo, then the Parakeet model) before the
+  hotkey works; watch it with `journalctl --user -fu transcribe`.
 - **Architecture-specific caches.** Docker images, `uv`-managed Pythons and
   virtualenvs are ARM builds on the guest. Recreate them; do not copy them.
 - **SSH host keys.** The new machine generates its own, so other machines

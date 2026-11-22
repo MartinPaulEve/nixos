@@ -19,7 +19,7 @@
     ./printing.nix
     ./security.nix
     ./shutdown.nix
-    ./transcribe-client.nix
+    ./transcribe.nix
     ./users.nix
     ./virtualisation.nix
     ./vm.nix

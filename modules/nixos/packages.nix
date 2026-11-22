@@ -344,7 +344,7 @@ in
     yt-dlp                   # CLI media downloader
 
     # --- Communication ---
-    # Proton Mail bridge + Thunderbird are configured in email.nix.
+    # Thunderbird is in email.nix.
     signal-desktop           # Signal messenger
     telegram-desktop         # Telegram messenger
     holos                    # holos.social desktop client (AppImage wrap, built above)
@@ -352,7 +352,7 @@ in
     # --- System & disk utilities ---
     libnotify                # Desktop notifications from the CLI (notify-send)
     xclip                    # X11 clipboard CLI (X apps/XWayland; Wayland side is
-                             # wl-clipboard, from transcribe-client.nix)
+                             # wl-clipboard, from transcribe.nix)
     file-roller              # Zip file handler
     gparted                  # Partition editor
     safeeyes                 # Break reminder to reduce eye strain

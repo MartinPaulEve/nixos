@@ -53,12 +53,36 @@ let
     "/home/martin/.config/systemd/user/graphical-session.target.wants/transcribe-client.service"
     "/home/martin/.config/systemd/user/mac-folder-links.service"
     "/home/martin/.config/systemd/user/transcribe-client.service"
-    "/home/martin/.local/share/mpe-transcribe/transcribe.toml" # Mac-host client
   ];
   vmOnlyUserServices = [
     "mac-folder-links"
-    "transcribe-client"
+    "transcribe-client" # hotkey + paste only; the Mac host transcribes
   ];
+
+  # Voice transcription follows the hardware (home/martin/transcribe.nix): the
+  # guest is a client of the Mac, and a machine with an NVIDIA card does its
+  # own transcription under a unit of its own. Both keep their settings in
+  # the same transcribe.toml; a machine with neither has none.
+  hasNvidia = cfg: builtins.elem "nvidia" cfg.services.xserver.videoDrivers;
+  transcribeToml = "/home/martin/.local/share/mpe-transcribe/transcribe.toml";
+  standaloneTranscribeFiles = [
+    "/home/martin/.config/systemd/user/graphical-session.target.wants/transcribe.service"
+    "/home/martin/.config/systemd/user/transcribe.service"
+  ];
+
+  # sshfs mounts a host has opted out of (sshfsMounts.exclude, set in its own
+  # file) are missing there by design: their units, and the files behind them.
+  excludedMountServices = cfg: map (n: "sshfs-${n}") cfg.sshfsMounts.exclude;
+  excludedMountFiles = cfg: builtins.filter
+    (f: builtins.any (u: lib.hasSuffix "/${u}.service" f) (excludedMountServices cfg))
+    (homeFiles vm);
+
+  # Fixes for one machine's own hardware, which no other machine should have.
+  quirkServices = {
+    animal = [ "usb-hub-recover" ]; # modules/hardware/usb-hub-recover.nix
+  };
+
+  sorted = lib.sort builtins.lessThan;
   vmOnlyServices = [ "powertop" "prltoolsd" ];
   metalOnlyServices = [
     # The Parallels module turns timesyncd off (the Mac host keeps the guest's
@@ -169,11 +193,26 @@ let
       fonts-identical = fonts vm == fonts metal;
 
       # Same home directory.
-      home-files-vm-only = only (homeFiles vm) (homeFiles metal) == vmOnlyHomeFiles;
-      home-files-metal-only = only (homeFiles metal) (homeFiles vm) == [ ];
-      user-services-vm-only =
-        only (userServices vm) (userServices metal) == vmOnlyUserServices;
-      user-services-metal-only = only (userServices metal) (userServices vm) == [ ];
+      home-files-vm-only = only (homeFiles vm) (homeFiles metal)
+        == sorted (vmOnlyHomeFiles ++ excludedMountFiles metal
+          ++ lib.optional (!hasNvidia metal) transcribeToml);
+      home-files-metal-only = only (homeFiles metal) (homeFiles vm)
+        == lib.optionals (hasNvidia metal) standaloneTranscribeFiles;
+      user-services-vm-only = only (userServices vm) (userServices metal)
+        == sorted (vmOnlyUserServices ++ excludedMountServices metal);
+      user-services-metal-only = only (userServices metal) (userServices vm)
+        == lib.optional (hasNvidia metal) "transcribe";
+      # A machine with the card to do it transcribes for itself, and only
+      # for itself: no client of anything, and no network listener.
+      transcribe-standalone-on-nvidia = !(hasNvidia metal)
+        || builtins.all (lib.hasSuffix " transcribe --standalone") (lib.toList
+          (hm metal).systemd.user.services.transcribe.Service.ExecStart);
+      # An excluded mount is gone from the system side too: no mountpoint is
+      # created for it.
+      excluded-mounts-have-no-mountpoint = builtins.all
+        (n: !(builtins.elem "d /home/martin/mounts/${n} 0755 martin users -"
+          metal.systemd.tmpfiles.rules))
+        metal.sshfsMounts.exclude;
       # Compared as JSON: GVariant values carry functions, which `==` rejects.
       dconf-identical = builtins.toJSON (hm vm).dconf.settings
         == builtins.toJSON (hm metal).dconf.settings;
@@ -206,6 +245,12 @@ let
         && vm.networking.firewall.trustedInterfaces
         == metal.networking.firewall.trustedInterfaces;
       u2f-identical = vm.security.pam.u2f.settings == metal.security.pam.u2f.settings;
+      # espanso is the Wayland build, run as a declared user service, on
+      # every machine (modules/nixos/espanso.nix).
+      espanso-identical = metal.services.espanso.enable
+        && vm.services.espanso.enable
+        && (metal.services.espanso.package.waylandSupport or false)
+        && (vm.services.espanso.package.waylandSupport or false);
       # (system.stateVersion is deliberately not compared: it records the
       # release each machine was first installed with, which may differ.)
       plymouth-identical = vm.boot.plymouth.theme == metal.boot.plymouth.theme;
@@ -213,7 +258,7 @@ let
         only (enabledServices vm) (enabledServices metal) == vmOnlyServices;
       system-services-metal-only =
         withoutGpuDriver (only (enabledServices metal) (enabledServices vm))
-        == metalOnlyServices;
+        == sorted (metalOnlyServices ++ (quirkServices.${name} or [ ]));
       dns-per-host = lib.hasPrefix "45.90.28.0#${metal.networking.hostName}-"
         (builtins.head metal.services.resolved.settings.Resolve.DNS);
     }
@@ -235,6 +280,16 @@ let
         && metal.boot.loader.efi.canTouchEfiVariables;
       other-systems-in-boot-menu = metal.boot.loader.grub.useOSProber;
       nvidia-open-module = metal.hardware.nvidia.open;
+      # waldorf is the other Linux on this machine's own disks: it can never
+      # be mounted from here, and trying held up every login.
+      no-waldorf-mount = metal.sshfsMounts.exclude == [ "waldorf" ]
+        && !(builtins.elem "sshfs-waldorf" (userServices metal));
+      # PCIe link power saving stays off, as on this machine's Ubuntu install
+      # (hosts/animal/default.nix has the story).
+      pcie-links-stay-awake =
+        builtins.elem "pcie_aspm.policy=performance" metal.boot.kernelParams;
+      # The login screen is told which of the three monitors is primary.
+      login-screen-monitor-layout = metal.environment.etc ? "xdg/monitors.xml";
     };
 in
 vmChecks
