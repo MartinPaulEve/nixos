@@ -15,6 +15,12 @@
 
 with lib.hm.gvariant;
 
+let
+  # The system's keyboard layout (modules/nixos/desktop.nix) as GNOME names an
+  # input source: the layout, then "+variant" if there is one.
+  xkb = osConfig.services.xserver.xkb;
+  inputSource = xkb.layout + lib.optionalString (xkb.variant != "") "+${xkb.variant}";
+in
 {
   # Pin the display to 1440x900. GNOME stores monitor configuration in
   # ~/.config/monitors.xml (not dconf), keyed to the Virtual-1 connector.
@@ -156,8 +162,11 @@ with lib.hm.gvariant;
       play-sound = true;
     };
 
+    # Home Manager writes these settings back at every login, so a layout
+    # picked in Settings → Keyboard lasts only until the next one. The layout
+    # is therefore taken from the system's, which differs by machine.
     "org/gnome/desktop/input-sources" = {
-      sources = [ (mkTuple [ "xkb" "gb+mac" ]) ];
+      sources = [ (mkTuple [ "xkb" inputSource ]) ];
       xkb-options = [];
     };
 

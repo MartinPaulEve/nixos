@@ -1,5 +1,5 @@
 # Time zone, locale, and console keymap.
-{ ... }:
+{ config, ... }:
 
 {
   # Time zone.
@@ -19,6 +19,6 @@
     LC_TIME = "en_GB.UTF-8";
   };
 
-  # Console keymap.
-  console.keyMap = "uk";
+  # Console keymap, to match the desktop's layout (desktop.nix).
+  console.keyMap = if config.services.xserver.xkb.layout == "gb" then "uk" else "us";
 }

@@ -20,6 +20,9 @@
     # drops off the bus during a cold boot and stays dead until replugged;
     # see modules/hardware/usb-hub-recover.nix.
     ../../modules/hardware/usb-hub-recover.nix
+    # The older home partition on the first NVMe drive, mounted at boot, with
+    # ~/Documents, ~/Music and ~/Pictures linked onto it.
+    ./central-home.nix
   ];
 
   # NVIDIA's open kernel module (required for the RTX 50 series) instead of
@@ -38,6 +41,14 @@
   # one known difference from the install that does not freeze, and costs a
   # few watts at idle. Check it took with:
   #   cat /sys/module/pcie_aspm/parameters/policy
+  #
+  # It froze the same way a second time, on the evening of 22 November 2026 —
+  # which says nothing against this parameter: it had been added that
+  # morning without a reboot, so that boot ran without it too. The boot of
+  # 23 November is the first with it. If the machine freezes like this
+  # again on a boot where the check above says [performance], the links are
+  # cleared and the next suspect is the drives' own idle states (APST):
+  #   nvme_core.default_ps_max_latency_us=0
   boot.kernelParams = [ "pcie_aspm.policy=performance" ];
 
   # The monitor layout for the login screen: three side by side, the middle

@@ -19,6 +19,7 @@ hosts/                     One directory per machine; the directory name is the 
     hardware-configuration.nix
   animal/                  Bare metal: AMD CPU + RTX 50-series card, dual boot via GRUB (see AMD64.md)
     default.nix            Hardware profiles, the USB hub quirk, PCIe power saving off, no waldorf mount
+    central-home.nix       The older home partition at ~/mounts/central_home; ~/Documents, ~/Music, ~/Pictures linked onto it
     hardware-configuration.nix
     monitors.xml           Three-monitor layout for the login screen (installed as /etc/xdg/monitors.xml)
   nixos-amd64/             Bare metal: AMD CPU + NVIDIA card (see AMD64.md); copy it to add a machine
@@ -358,10 +359,20 @@ should name its real driver in its own `hosts/<name>/default.nix`.
 
 [keyd](https://github.com/rvaiya/keyd) (`modules/nixos/keyd.nix`) provides
 system-wide key remapping at the evdev level, so it works under Wayland (unlike
-the X11-only AutoKey). The `gb(mac)` layout already carries `£` and `#` on the
-`3` key (at Shift and AltGr respectively), so keyd remaps the familiar chords
-onto those native combinations rather than synthesising Unicode: `Ctrl+Shift+3`
-emits `Shift+3` (`£`) and `Ctrl+4` emits `AltGr+3` (`#`).
+the X11-only AutoKey). The chords are `Ctrl+Shift+3` for `£` and `Ctrl+4` for
+`#`, and keyd remaps each onto the key combination the machine's layout
+already has for that character rather than synthesising Unicode. On the
+guest's `gb(mac)` layout the `3` key carries both (at Shift and AltGr), so
+they emit `Shift+3` and `AltGr+3`. On the `us` layout of the bare-metal
+machines `Ctrl+4` emits `Shift+3` (`#`), and there is no `£` to map the other
+chord to.
+
+The layout itself is chosen once, in `modules/nixos/desktop.nix`
+(`services.xserver.xkb`): English (Macintosh) on the Parallels guest, English
+(US) on real hardware. The GNOME input source in `home/martin/gnome.nix`, the
+console keymap and the keyd chords are derived from it. A layout picked in
+Settings → Keyboard does not last, because Home Manager writes the declared
+one back at every login.
 
 `modules/nixos/transcribe.nix` carries the system-side dependencies for
 mpe-transcribe voice transcription: `wl-clipboard` (Wayland clipboard
@@ -398,7 +409,11 @@ The standalone install is PyTorch, NeMo and a CUDA runtime as prebuilt
 wheels, which expect an ordinary Linux layout, so that unit runs uv inside a
 small FHS environment (`buildFHSEnv`, in the same file) carrying Python 3.12,
 PortAudio, libstdc++, a compiler for `python-evdev`, and the clipboard and
-notification tools the app shells out to. Its first start is slow: several
+notification tools the app shells out to. The environment has an empty
+`/dev/snd`, so the app reaches sound only through PipeWire: left to list the
+hardware itself, it opened each card just as WirePlumber was probing them at
+login, and the audio interface came up without its outputs (no ding, so the
+hotkey seemed dead). Its first start is slow: several
 gigabytes of wheels, then the model (cached in `~/.cache`); follow it with
 `journalctl --user -fu transcribe`. The model stays loaded on the GPU (about
 2 GB of VRAM) for as long as the unit runs.
@@ -413,8 +428,14 @@ keyboards and injecting through `/dev/uinput` is granted three ways at once —
 uinput half espanso crash-loops, briefly flashing its layout-detection window
 at every restart. Only the configuration stays outside the repo: matches (the
 text-expansion snippets) live in `~/.config/espanso/match/*.yml` and global
-options in `~/.config/espanso/config/default.yml`. espanso writes its stock
-templates there on first start and reloads them on save. A machine that still
+options in `~/.config/espanso/config/default.yml`, and espanso reloads them
+on save. espanso 2.3.0 does not create them itself — on a machine with no
+configuration it fails with "missing config directory" behind a
+troubleshooting window that will not close — so the unit seeds a starter
+`config/default.yml` and `match/base.yml` when there is no `config/`
+directory, and touches nothing otherwise. The unit only runs for members of
+the `uinput` group, which keeps it out of the login screen's session, where
+it would otherwise sit reading the keyboard as GDM's greeter user. A machine that still
 has the old hand-written `~/.config/systemd/user/espanso.service` keeps using
 it (a unit in the home directory outranks the system one) until that file is
 deleted.
@@ -486,7 +507,11 @@ A host can leave a mount out completely by naming it in
 `sshfsMounts.exclude` (the option is declared in `modules/nixos/mounts.nix`):
 no unit, no mountpoint, and `sshmount` does not know it. `animal` excludes
 `waldorf`, which is the other Linux on its own disks and so is never running
-at the same time.
+at the same time. `animal` also has one local mount there: the older ext4
+home partition on its first NVMe drive is an ordinary boot-time mount at
+`~/mounts/central_home`, declared in `hosts/animal/central-home.nix`, which
+also links `~/Documents`, `~/Music` and `~/Pictures` onto the folders of the
+same name under `martin/` there (`journalctl --user -u central-home-links`).
 
 The `bw://` remotes are Bitwarden secure-note references: `sshmount`
 resolves every one in a single `bw unlock` (one master-password prompt per

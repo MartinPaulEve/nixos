@@ -147,6 +147,21 @@ let
       libnotify # notify-send
       pulseaudio # pactl, to check the microphone before recording
     ];
+    # No sound hardware inside: an empty /dev/snd, so ALSA here finds no
+    # cards and offers only the PipeWire devices, which need no device node.
+    #
+    # Without this, PortAudio (under sounddevice) lists the audio devices by
+    # opening every card's hardware PCM in turn — when the app starts, and
+    # again at each recording. Each is held for a few milliseconds only, but
+    # the app starts at login alongside WirePlumber, which sizes up every card
+    # in its first second or two by opening the same PCMs, and an output it
+    # finds busy it concludes the card does not have. That is how the audio
+    # interface came up with inputs and no outputs: all sound went to a
+    # monitor with no speakers, the "recording" ding with it, and the hotkey
+    # looked dead while the app sat there recording. (Should a card ever come
+    # up short of outputs again, `systemctl --user restart wireplumber` makes
+    # it look a second time.)
+    extraBwrapArgs = [ "--tmpfs /dev/snd" ];
     runScript = "uv";
   };
 

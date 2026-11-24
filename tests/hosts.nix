@@ -82,6 +82,18 @@ let
     animal = [ "usb-hub-recover" ]; # modules/hardware/usb-hub-recover.nix
   };
 
+  # User services one machine has for its own disks, and the files behind
+  # them.
+  hostUserServices = {
+    animal = [ "central-home-links" ]; # hosts/animal/central-home.nix
+  };
+  hostHomeFiles = name: lib.concatMap
+    (u: [
+      "/home/martin/.config/systemd/user/default.target.wants/${u}.service"
+      "/home/martin/.config/systemd/user/${u}.service"
+    ])
+    (hostUserServices.${name} or [ ]);
+
   sorted = lib.sort builtins.lessThan;
   vmOnlyServices = [ "powertop" "prltoolsd" ];
   metalOnlyServices = [
@@ -113,6 +125,15 @@ let
   ghosttySettings = cfg: removeAttrs (hm cfg).programs.ghostty.settings [ "env" ];
 
   groups = cfg: lib.sort builtins.lessThan cfg.users.users.martin.extraGroups;
+
+  # GNOME's keyboard input sources, as dconf prints them, and the dconf
+  # settings without them.
+  inputSourcesKey = "org/gnome/desktop/input-sources";
+  inputSources = cfg: toString (hm cfg).dconf.settings.${inputSourcesKey}.sources;
+  onlyInputSource = name: "@a(ss) [@(ss) ('xkb','${name}')]";
+  withoutInputSources = settings: settings // {
+    ${inputSourcesKey} = removeAttrs settings.${inputSourcesKey} [ "sources" ];
+  };
 
   enabledServices = cfg: lib.sort builtins.lessThan (builtins.attrNames
     (lib.filterAttrs (_: s: s.enable && s.wantedBy != [ ]) cfg.systemd.services));
@@ -197,11 +218,13 @@ let
         == sorted (vmOnlyHomeFiles ++ excludedMountFiles metal
           ++ lib.optional (!hasNvidia metal) transcribeToml);
       home-files-metal-only = only (homeFiles metal) (homeFiles vm)
-        == lib.optionals (hasNvidia metal) standaloneTranscribeFiles;
+        == sorted (lib.optionals (hasNvidia metal) standaloneTranscribeFiles
+          ++ hostHomeFiles name);
       user-services-vm-only = only (userServices vm) (userServices metal)
         == sorted (vmOnlyUserServices ++ excludedMountServices metal);
       user-services-metal-only = only (userServices metal) (userServices vm)
-        == lib.optional (hasNvidia metal) "transcribe";
+        == sorted (lib.optional (hasNvidia metal) "transcribe"
+          ++ (hostUserServices.${name} or [ ]));
       # A machine with the card to do it transcribes for itself, and only
       # for itself: no client of anything, and no network listener.
       transcribe-standalone-on-nvidia = !(hasNvidia metal)
@@ -214,8 +237,9 @@ let
           metal.systemd.tmpfiles.rules))
         metal.sshfsMounts.exclude;
       # Compared as JSON: GVariant values carry functions, which `==` rejects.
-      dconf-identical = builtins.toJSON (hm vm).dconf.settings
-        == builtins.toJSON (hm metal).dconf.settings;
+      # Minus the keyboard layout, which follows the hardware (below).
+      dconf-identical = builtins.toJSON (withoutInputSources (hm vm).dconf.settings)
+        == builtins.toJSON (withoutInputSources (hm metal).dconf.settings);
       ghostty-settings-identical = ghosttySettings vm == ghosttySettings metal;
       ghostty-hardware-gl = !((hm metal).programs.ghostty.settings ? env);
       git-identical = (hm vm).programs.git.settings == (hm metal).programs.git.settings;
@@ -233,10 +257,27 @@ let
         == lib.getName metal.users.users.martin.shell;
       locale-identical = vm.i18n.defaultLocale == metal.i18n.defaultLocale
         && vm.time.timeZone == metal.time.timeZone
-        && vm.console.keyMap == metal.console.keyMap
-        && vm.services.xserver.xkb.layout == metal.services.xserver.xkb.layout
-        && vm.services.xserver.xkb.variant == metal.services.xserver.xkb.variant;
-      keyd-identical = vm.services.keyd.keyboards == metal.services.keyd.keyboards;
+        && vm.services.xserver.xkb.options == metal.services.xserver.xkb.options;
+      # The keyboard layout is the hardware's: the guest is typed on the
+      # Mac's keyboard (British, Apple's arrangement), real hardware on a PC
+      # keyboard in the US arrangement. Whichever it is, the desktop's input
+      # source, the console and the keyd chords all agree with it.
+      keyboard-layout-follows-hardware =
+        [ vm.services.xserver.xkb.layout vm.services.xserver.xkb.variant ] == [ "gb" "mac" ]
+        && [ metal.services.xserver.xkb.layout metal.services.xserver.xkb.variant ] == [ "us" "" ]
+        && inputSources vm == onlyInputSource "gb+mac"
+        && inputSources metal == onlyInputSource "us"
+        && vm.console.keyMap == "uk" && metal.console.keyMap == "us";
+      # Same chords everywhere (Ctrl+Shift+3 for £, Ctrl+4 for #), sent as
+      # whatever each layout types that character with. The US layout has no
+      # £ to send.
+      keyd-chords-fit-the-layout =
+        vm.services.keyd.keyboards.default.settings
+          == { main = { }; "control+shift"."3" = "S-3"; control."4" = "G-3"; }
+        && metal.services.keyd.keyboards.default.settings
+          == { main = { }; control."4" = "S-3"; }
+        && vm.services.keyd.keyboards.default.ids
+          == metal.services.keyd.keyboards.default.ids;
       # Minus 127.0.0.2, which NixOS maps to each machine's own hostname.
       hosts-identical = removeAttrs vm.networking.hosts [ "127.0.0.2" ]
         == removeAttrs metal.networking.hosts [ "127.0.0.2" ];
@@ -249,6 +290,12 @@ let
       # every machine (modules/nixos/espanso.nix).
       espanso-identical = metal.services.espanso.enable
         && vm.services.espanso.enable
+        # For martin only (not the login screen's session), and seeded with
+        # a starter configuration, without which it cannot start.
+        && builtins.all
+          (cfg: cfg.systemd.user.services.espanso.unitConfig.ConditionGroup == "uinput"
+            && cfg.systemd.user.services.espanso.serviceConfig ? ExecStartPre)
+          [ vm metal ]
         && (metal.services.espanso.package.waylandSupport or false)
         && (vm.services.espanso.package.waylandSupport or false);
       # (system.stateVersion is deliberately not compared: it records the
@@ -284,6 +331,23 @@ let
       # be mounted from here, and trying held up every login.
       no-waldorf-mount = metal.sshfsMounts.exclude == [ "waldorf" ]
         && !(builtins.elem "sshfs-waldorf" (userServices metal));
+      # The older home partition is mounted at boot, without
+      # holding the boot up if the drive is missing — and nothing may create
+      # or adjust its mountpoint, which once mounted is the volume's own root
+      # directory (hosts/animal/central-home.nix has the story).
+      central-home-mounted =
+        let fs = metal.fileSystems."/home/martin/mounts/central_home"; in
+        fs.fsType == "ext4"
+        && lib.hasPrefix "/dev/disk/by-uuid/" fs.device
+        && builtins.elem "nofail" fs.options
+        && !(builtins.any (lib.hasInfix "/home/martin/mounts/central_home")
+          metal.systemd.tmpfiles.rules);
+      # ~/Documents, ~/Music and ~/Pictures are linked onto it, and only when
+      # it is actually mounted.
+      central-home-folders-linked =
+        let unit = (hm metal).systemd.user.services.central-home-links; in
+        unit.Unit.ConditionPathIsMountPoint == "/home/martin/mounts/central_home"
+        && unit.Install.WantedBy == [ "default.target" ];
       # PCIe link power saving stays off, as on this machine's Ubuntu install
       # (hosts/animal/default.nix has the story).
       pcie-links-stay-awake =

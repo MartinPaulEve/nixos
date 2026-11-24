@@ -80,12 +80,16 @@ booted on AMD hardware yet.
   is replugged: once per boot it reads the kernel log for hubs that failed to
   enumerate and power-cycles the motherboard port each hangs off. `animal`
   imports it; `journalctl -b -u usb-hub-recover` shows what it did.
-- `hosts/animal/` carries four things of its own besides its hardware
+- `hosts/animal/` carries five things of its own besides its hardware
   profiles: that hub quirk, `monitors.xml` (installed as
   `/etc/xdg/monitors.xml`, so the login screen knows the three-monitor layout
   and puts its dialog on the primary one — GDM never reads the copy in the
   home directory), `sshfsMounts.exclude = [ "waldorf" ]`, because
-  waldorf is the Ubuntu install on the same disks, and the kernel parameter
+  waldorf is the Ubuntu install on the same disks, `central-home.nix` (a
+  boot-time mount of the older ext4 home partition at
+  `~/mounts/central_home`, `nofail` and with its ownership and permissions
+  left exactly as found, plus a user service that links `~/Documents`,
+  `~/Music` and `~/Pictures` onto it), and the kernel parameter
   `pcie_aspm.policy=performance`, carried over from that Ubuntu install
   after a freeze that looked like the root NVMe drive dropping off the bus.
 - `hosts/nixos-amd64/hardware-configuration.nix` is the placeholder hardware
@@ -148,6 +152,7 @@ groups, locale, keyboard, firewall or PAM settings.
 | File indexer (`localsearch`) | off | on (stock GNOME) |
 | `powertop` auto-tuning | on | off |
 | Firmware updates (`fwupd`) | off | on |
+| Keyboard layout | `gb` + `mac` (English, Macintosh): desktop input source, console `uk`, keyd chords for £ and # | `us` (English, US): desktop input source, console `us`, keyd chord for # only |
 | ghostty rendering | software OpenGL wrapper | real GPU |
 | `~/.config/monitors.xml` | pinned to 1440x900 | owned by GNOME |
 | Mac folder symlinks | `~/Documents` etc. link to the Mac | ordinary local folders |
@@ -344,15 +349,16 @@ against a brand-new kernel, pin that host to the long-term kernel by adding
 The parity check `same-kernel-series` will then fail for that host, which is
 the intended reminder that it has diverged.
 
-Still open, kept identical to the guest:
+Still open:
 
-1. **Keyboard layout.** The system uses the `gb` layout with the `mac`
-   variant, and `keyd.nix` remaps `£` and `#` on that assumption. With an
-   Apple keyboard on the AMD machine this is right. With a PC keyboard, `@`,
-   `"`, `#` and `\` will be in the wrong places, and the layout wants
-   overriding for that host in three places: `services.xserver.xkb` in
-   `desktop.nix`, the `gb+mac` input source in `gnome.nix`, and the keyd
-   chords.
+1. **£ on the US layout.** The keyboard layout now follows the hardware:
+   `desktop.nix` gives the guest `gb` + `mac` and real hardware `us`, and
+   the GNOME input source, the console keymap and the keyd chords are all
+   derived from that one setting (a machine with a different keyboard sets
+   `services.xserver.xkb` in its own host file). What `us` cannot do is type
+   `£`: the layout has no key for it, so the `Ctrl+Shift+3` chord is unmapped
+   there. Getting it back means either a layout that carries the character
+   or letting keyd emit it through a compose sequence.
 2. **Voice transcription.** The system-side pieces (ydotool, wl-clipboard,
    the `input` group) are installed on every machine, but the client only
    runs on the guest because it sends audio work to the Mac. Running it on
