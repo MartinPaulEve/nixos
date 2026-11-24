@@ -352,6 +352,10 @@ let
       # (hosts/animal/default.nix has the story).
       pcie-links-stay-awake =
         builtins.elem "pcie_aspm.policy=performance" metal.boot.kernelParams;
+      # Nor do the NVMe drives put themselves into their own idle states: the
+      # root drive vanished on a boot where the links were already held awake.
+      nvme-drives-stay-awake =
+        builtins.elem "nvme_core.default_ps_max_latency_us=0" metal.boot.kernelParams;
       # The login screen is told which of the three monitors is primary.
       login-screen-monitor-layout = metal.environment.etc ? "xdg/monitors.xml";
     };

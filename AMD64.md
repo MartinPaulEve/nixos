@@ -89,9 +89,12 @@ booted on AMD hardware yet.
   boot-time mount of the older ext4 home partition at
   `~/mounts/central_home`, `nofail` and with its ownership and permissions
   left exactly as found, plus a user service that links `~/Documents`,
-  `~/Music` and `~/Pictures` onto it), and the kernel parameter
-  `pcie_aspm.policy=performance`, carried over from that Ubuntu install
-  after a freeze that looked like the root NVMe drive dropping off the bus.
+  `~/Music` and `~/Pictures` onto it), and two kernel parameters against
+  the system drive dropping off the bus, which it has done three times:
+  `pcie_aspm.policy=performance` (no PCIe link power saving, carried over
+  from that Ubuntu install) and `nvme_core.default_ps_max_latency_us=0` (no
+  idle power states on the NVMe drives themselves), added when the first
+  proved not to be enough. `hosts/animal/default.nix` has the full story.
 - `hosts/nixos-amd64/hardware-configuration.nix` is the placeholder hardware
   scan. It mounts root and `/boot` by filesystem label (`nixos` and `boot`).
 - `flake.nix` now turns every directory under `hosts/` into a flake output

@@ -29,27 +29,56 @@
   # the proprietary one; see modules/hardware/nvidia.nix.
   hardware.nvidia.open = true;
 
-  # Keep the PCIe links out of their power-saving states (ASPM). The Ubuntu
-  # install on this machine has always booted with this parameter; NixOS
-  # came up without it, with link power saving active on all three NVMe
-  # drives, and within two days had frozen once in a way that points at the
-  # root drive going away: the system log stops dead mid-evening, yet the
-  # next morning sshd still answered — only to reset every connection — and
-  # the screens, long since blanked, would not come back. That is a kernel
-  # still running with nothing left to read programs from or write logs to.
-  # Unproven as the cause (a freeze like that leaves no log), but it is the
-  # one known difference from the install that does not freeze, and costs a
-  # few watts at idle. Check it took with:
-  #   cat /sys/module/pcie_aspm/parameters/policy
+  # The drive this system runs from has three times vanished while the
+  # machine was up (about 18:17 on 21 November 2026, 18:31 on the
+  # 22nd, 01:37 on the 24th). Each time looks the same: the system log stops
+  # dead, sshd still answers but resets every connection, a new terminal
+  # says "exec syscall failed … error.FileSystem", and whatever is open
+  # reports I/O errors on files in /home. / , /nix and /home are all on that
+  # one drive, so that is a kernel still running with nothing to read
+  # programs from or write logs to — and, the journal being on the drive
+  # that went, with no record of what happened to it.
   #
-  # It froze the same way a second time, on the evening of 22 November 2026 —
-  # which says nothing against this parameter: it had been added that
-  # morning without a reboot, so that boot ran without it too. The boot of
-  # 23 November is the first with it. If the machine freezes like this
-  # again on a boot where the check above says [performance], the links are
-  # cleared and the next suspect is the drives' own idle states (APST):
-  #   nvme_core.default_ps_max_latency_us=0
-  boot.kernelParams = [ "pcie_aspm.policy=performance" ];
+  # What is known about the drive: a Samsung 990 PRO (firmware 4B2QJXD7) in
+  # an M.2 slot fed through the motherboard chipset, at PCI address
+  # 0000:0c:00.0. The Ubuntu install on this machine, which does not freeze,
+  # runs from a different drive in a different slot (the 9100 PRO at
+  # 0000:02:00.0), so "it never happened on Ubuntu" does not clear this
+  # drive or its slot.
+  #
+  # Two settings, one per layer of power saving between the kernel and the
+  # drive:
+  #
+  # - pcie_aspm.policy=performance keeps the PCIe links out of their own
+  #   power-saving states (ASPM). Ubuntu here has always booted with it. It
+  #   is not the whole answer: the freeze of the 24th was on a boot that had
+  #   it, with every NVMe link showing ASPM off.
+  #
+  # - nvme_core.default_ps_max_latency_us=0 stops the drives putting
+  #   themselves into their idle power states (APST) and coming back out,
+  #   which is where this model on this firmware is known to fall off the
+  #   bus ("controller is down; will reset: CSTS=0xffffffff" is the kernel's
+  #   message, and this parameter its own suggested remedy). Samsung's later
+  #   firmware (7B2QJXD7 onwards) lists "intermittent non-recognition" among
+  #   its fixes; updating both 990 PROs is the cure, this the workaround.
+  #   Costs a watt or so per drive at idle.
+  #
+  # Check both took with:
+  #   cat /sys/module/pcie_aspm/parameters/policy              # [performance]
+  #   cat /sys/module/nvme_core/parameters/default_ps_max_latency_us   # 0
+  #
+  # If it freezes again with both in place, power saving is cleared at both
+  # layers, and what is left is the drive itself (firmware, or a
+  # replacement) or its slot (reseat it, move the drive to a slot fed by the
+  # processor, or hold the slot at a lower link speed in the firmware
+  # setup). The kernel's messages at the moment the drive goes would tell
+  # the two apart — a controller that stopped answering is the drive; a PCIe
+  # link going down or AER errors are the slot — but they are lost with the
+  # journal unless something is copying them to another drive at the time.
+  boot.kernelParams = [
+    "pcie_aspm.policy=performance"
+    "nvme_core.default_ps_max_latency_us=0"
+  ];
 
   # The monitor layout for the login screen: three side by side, the middle
   # one (the VS248 on DP-3) primary, which is where GDM puts the login
