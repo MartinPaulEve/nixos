@@ -78,14 +78,13 @@ home/                      Home Manager wiring, attached as a NixOS module
     sublime.nix            Sublime Text plugins (Jekyll, MarkdownEditing), pinned, + the inlyne preview command
     sublime-default.nix    Sublime Text as the default text-file opener (via xdg-mime, like markdown-preview.nix)
     transcribe.nix         mpe-transcribe voice transcription: standalone on an NVIDIA machine, client of the Mac on the Parallels guest
-    unison.nix             Unison sync profile
+    unison.nix             Unison sync profile (the folders synchronised can be set per host)
     whipper.nix            Whipper CD ripper package + config
     zotero.nix             Registers the Zotero LibreOffice extension (per-user)
     functions/             Fish functions, linked into ~/.config/fish/functions
     gnome/                 GNOME assets (monitors.xml display layout)
     ssh/                   ~/.ssh/config source and public keys (secrets stay in the Bitwarden agent)
     sublime/               Sublime User files (Jekyll front-matter override, markdown preview plugins)
-    unison/                Unison profile source
     whipper/               Whipper config source
 tests/
   hosts.nix                Evaluation-only checks that all hosts stay in step (run via check_hosts.sh)

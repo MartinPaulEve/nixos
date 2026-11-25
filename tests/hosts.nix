@@ -94,6 +94,30 @@ let
     ])
     (hostUserServices.${name} or [ ]);
 
+  # The Unison profile (home/martin/unison.nix), as the text that lands in
+  # ~/.unison/default.prf, split into the folders it synchronises (in the
+  # order Unison takes them) and everything else: roots, options, ignores.
+  unisonLines = cfg:
+    let f = (hm cfg).home.file.".unison/default.prf"; in
+    lib.splitString "\n" (if f.text != null then f.text else builtins.readFile f.source);
+  isUnisonPath = lib.hasPrefix "path = ";
+  unisonPaths = cfg:
+    map (lib.removePrefix "path = ") (builtins.filter isUnisonPath (unisonLines cfg));
+  unisonWithoutPaths = cfg: builtins.filter (l: !(isUnisonPath l)) (unisonLines cfg);
+
+  # Machines that synchronise folders of their own choosing. Any other
+  # machine synchronises the same ones as the guest.
+  hostUnisonPaths = {
+    animal = [
+      "Documents/Work/Uni"
+      "Documents/Work/Consulting"
+      "Documents/Personal"
+      "Documents/Work/Programming"
+      "Documents/Work/Michigan"
+      ".config/fish"
+    ];
+  };
+
   sorted = lib.sort builtins.lessThan;
   vmOnlyServices = [ "powertop" "prltoolsd" ];
   metalOnlyServices = [
@@ -148,6 +172,15 @@ let
       builtins.elem "/home/martin/.config/monitors.xml" (homeFiles vm);
     vm-no-amd-microcode = !vm.hardware.cpu.amd.updateMicrocode;
     vm-no-nvidia = !(builtins.elem "nvidia" vm.services.xserver.videoDrivers);
+    # The guest's own Unison folders are not disturbed by another machine's.
+    vm-unison-paths = unisonPaths vm == [
+      "Documents/Work/Uni"
+      "Documents/Work/Programming"
+      "Documents/Work/Consulting"
+      "Documents/Personal"
+      "Documents/Programming"
+      ".config/fish"
+    ];
     # The x86 test VM is the guest's config, so it keeps the guest's name.
     test-vm-hostname =
       flake.nixosConfigurations.nixos-vm-x86.config.networking.hostName == "nixos";
@@ -245,6 +278,10 @@ let
       git-identical = (hm vm).programs.git.settings == (hm metal).programs.git.settings;
       beets-identical =
         (hm vm).programs.beets.settings == (hm metal).programs.beets.settings;
+      # Unison talks to the same server with the same options and ignores
+      # everywhere; only the folders synchronised are a machine's own choice.
+      unison-profile-identical = unisonWithoutPaths vm == unisonWithoutPaths metal;
+      unison-paths = unisonPaths metal == (hostUnisonPaths.${name} or (unisonPaths vm));
       home-activation-identical =
         builtins.attrNames (hm vm).home.activation
         == builtins.attrNames (hm metal).home.activation;

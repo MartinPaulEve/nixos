@@ -161,6 +161,7 @@ groups, locale, keyboard, firewall or PAM settings.
 | Mac folder symlinks | `~/Documents` etc. link to the Mac | ordinary local folders |
 | Voice transcription | client: the Mac records and transcribes | standalone: records and transcribes itself, on the NVIDIA card (Parakeet) |
 | Tor Browser | nightly ARM build | stable release from nixpkgs |
+| Unison folders | the shared list in `home/martin/unison.nix` | the same, unless the host sets `unisonProfile.paths` (`animal` does) |
 
 ## Hostnames and adding machines
 

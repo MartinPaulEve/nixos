@@ -99,6 +99,19 @@
   # retried for ever against a host that cannot answer.
   sshfsMounts.exclude = [ "waldorf" ];
 
+  # What Unison synchronises with statler from here, in place of the shared
+  # list in home/martin/unison.nix: the Michigan work as well, and not
+  # Documents/Programming. (Documents is the folder on the central home
+  # volume; see central-home.nix.)
+  home-manager.users.martin.unisonProfile.paths = [
+    "Documents/Work/Uni"
+    "Documents/Work/Consulting"
+    "Documents/Personal"
+    "Documents/Work/Programming"
+    "Documents/Work/Michigan"
+    ".config/fish"
+  ];
+
   # The NixOS release this system was first installed with.
   # See `man configuration.nix` before changing.
   system.stateVersion = "26.05";
