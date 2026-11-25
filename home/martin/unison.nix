@@ -17,7 +17,6 @@ in
       "Documents/Work/Consulting"
       "Documents/Personal"
       "Documents/Programming"
-      ".config/fish"
     ];
     example = [ "Documents/Personal" ".config/fish" ];
     description = ''
