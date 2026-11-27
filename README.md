@@ -39,6 +39,7 @@ modules/
     email.nix              Thunderbird
     espanso.nix            espanso text expander: Wayland build, user service, uinput access
     fonts.nix              System fonts, incl. Nerd Fonts
+    immurok/               immurok fingerprint key: companion app built from source, its daemon, a fingerprint for sudo and polkit
     keyd.nix               System-wide key remapping (evdev, Wayland-safe)
     localization.nix       Time zone, locale, console keymap
     mounts.nix             Boot-time creation of ~/mounts sshfs mountpoints (tmpfiles); per-host sshfsMounts.exclude
@@ -161,6 +162,7 @@ installs one as a side effect:
 | `modules/nixos/virtualisation.nix` | Docker daemon + CLI |
 | `modules/nixos/transcribe.nix` | `wl-clipboard` (`wl-copy`/`wl-paste`), `ydotool` + `ydotoold` |
 | `modules/nixos/keyd.nix` | keyd (system-wide key remapping daemon) |
+| `modules/nixos/immurok/` | The immurok fingerprint key's companion app, built from source: `immurok-daemon`, `immurok-cli`, `imk`, the "immurok" settings app, `pam_immurok.so` |
 | `modules/nixos/users.nix` | `users.martin.packages`: Thunderbird (duplicate of `email.nix`'s, harmless), Python 3, the dash-to-dock, appindicator and clipboard-indicator GNOME Shell extensions |
 | `modules/nixos/fonts.nix` | Nerd Fonts (CaskaydiaCove, Symbols Only) |
 | `home/martin/shell.nix` | Starship prompt, Atuin shell history |
@@ -170,6 +172,29 @@ installs one as a side effect:
 
 espanso (text expander) is declared in `modules/nixos/espanso.nix`; only its
 snippets and options stay in `~/.config/espanso`, see the espanso note below.
+
+The immurok wireless fingerprint key is declared in `modules/nixos/immurok/`.
+Its Linux companion app is not in nixpkgs, and upstream's own install
+(packages, or `make install`) writes into `/usr/local`, `/etc/pam.d` and
+`/etc/systemd`, so `package.nix` builds the pinned release from source
+(a Rust workspace plus a C PAM module, with upstream's tests run in the
+build) and `default.nix` declares the rest: the daemon under an account of
+its own, the agent that shows its dialogs in the login session, and a
+fingerprint as an optional first factor for sudo and polkit, ahead of the
+YubiKey tap and the password. Without the key to hand nothing changes: the
+prompt falls straight through to the next factor.
+
+Pairing is per machine and stays out of the repository (in
+`/var/lib/immurok`): open "immurok" from the app menu, or run
+`immurok-cli pair`, then enrol a fingerprint; `sudo -k && sudo true` should
+then ask for a touch. Two things in the app do not apply here. Its PAM page
+can only report, since the PAM lines come from this configuration. And its
+SSH switch rewrites `~/.ssh/config`, which Home Manager owns
+(`home/martin/ssh.nix`); leave it off, or put the `IdentityAgent` line in
+`home/martin/ssh/config`. On a version bump, set the version in
+`package.nix`, reset both hashes to `lib.fakeHash`, rebuild, copy the
+reported hashes back, and run `tests/immurok_vm.nix` (its header says how),
+which boots a VM to check that sudo still falls through to the password.
 
 Sublime Text is pulled from a dedicated `pkgs` instance that permits the
 insecure OpenSSL 1.1 it depends on, scoped so the exception never applies to
