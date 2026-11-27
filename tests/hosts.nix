@@ -162,6 +162,56 @@ let
   enabledServices = cfg: lib.sort builtins.lessThan (builtins.attrNames
     (lib.filterAttrs (_: s: s.enable && s.wantedBy != [ ]) cfg.systemd.services));
 
+  # --- Every machine, the guest included ----------------------------------
+  # The immurok fingerprint key (modules/nixos/immurok): a daemon that talks
+  # to the key over Bluetooth, an agent in the login session for its dialogs,
+  # and a PAM module that asks the daemon for a fingerprint.
+  everyHost = { nixos = vm; } // lib.mapAttrs (_: host: host.config) metalHosts;
+  immurokChecks = cfg:
+    let
+      daemon = cfg.systemd.services.immurok-daemon or null;
+      agent = cfg.systemd.user.services.immurok-session-agent or null;
+      account = cfg.users.users.immurok or null;
+      authRules = service: cfg.security.pam.services.${service}.rules.auth;
+    in
+    {
+      immurok-installed = builtins.elem "immurok" (systemPkgs cfg);
+      immurok-daemon-starts-at-boot = daemon != null && daemon.enable
+        && builtins.elem "multi-user.target" daemon.wantedBy;
+      # The daemon holds the pairing key, so it has an account of its own
+      # that nobody logs in to.
+      immurok-daemon-has-its-own-account = account != null
+        && account.isSystemUser && account.group == "immurok"
+        && cfg.users.groups ? immurok;
+      # That account may talk to BlueZ, and there is a Bluetooth stack to
+      # talk to.
+      immurok-may-use-bluetooth = cfg.hardware.bluetooth.enable
+        && builtins.elem "immurok" (names cfg.services.dbus.packages);
+      immurok-agent-in-login-sessions = agent != null
+        && builtins.elem "default.target" agent.wantedBy;
+      # A fingerprint is an optional first factor for sudo and polkit: asked
+      # for before the YubiKey and the password, and never required, so a
+      # machine without the key to hand behaves as it did before.
+      immurok-fingerprint-optional-and-first = builtins.all
+        (service:
+          let
+            rules = authRules service;
+            fingerprint = rules.immurok or null;
+          in
+          fingerprint != null && fingerprint.enable
+          && fingerprint.control == "sufficient"
+          && lib.hasSuffix "/lib/security/pam_immurok.so" fingerprint.modulePath
+          && fingerprint.order < rules.u2f.order
+          && rules.u2f.order < rules.unix.order)
+        [ "sudo" "polkit-1" ];
+      # Nowhere else: the login and lock screens are unlocked by the daemon
+      # itself, not through PAM.
+      immurok-only-for-sudo-and-polkit = builtins.attrNames
+        (lib.filterAttrs (_: service: service.rules.auth ? immurok)
+          cfg.security.pam.services)
+        == [ "polkit-1" "sudo" ];
+    };
+
   # --- The Parallels guest keeps its hardware-specific pieces -------------
   vmChecks = {
     vm-is-aarch64 = vm.nixpkgs.hostPlatform.system == "aarch64-linux";
@@ -398,6 +448,10 @@ let
     };
 in
 vmChecks
+// lib.concatMapAttrs
+  (name: cfg: lib.mapAttrs' (check: lib.nameValuePair "${name}: ${check}")
+    (immurokChecks cfg))
+  everyHost
 // lib.concatMapAttrs
   (name: host: lib.mapAttrs' (check: lib.nameValuePair "${name}: ${check}")
     (metalChecks name host))

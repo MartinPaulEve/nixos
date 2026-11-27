@@ -9,6 +9,7 @@
     ./email.nix
     ./espanso.nix
     ./fonts.nix
+    ./immurok
     ./keyd.nix
     ./localization.nix
     ./mounts.nix
